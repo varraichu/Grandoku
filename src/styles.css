@@ -1,8 +1,8 @@
 /* Every size below is in Figma design pixels (402-wide frame) multiplied by --u.
-   Phones fill the screen width; the 700 floor is the compact layout height, so short
-   viewports scale down instead of scrolling. Spare height is spread between sections. */
+   Phones fill the screen width; 640 is the compact layout height, so short viewports
+   scale down instead of scrolling. Spare height is spread between sections. */
 :root {
-  --u: min(calc(100vw / 402), calc(100dvh / 700));
+  --u: min(calc(100vw / 402), calc(100dvh / 640));
   --bg: #eae5d9;
   --bg-notes: #c9c3c1;
   --ink: #000;
@@ -71,8 +71,8 @@ button:focus-visible {
   display: flex;
   flex-direction: column;
   justify-content: space-evenly;
-  padding: max(calc(10 * var(--u)), env(safe-area-inset-top)) calc(18 * var(--u))
-    max(calc(10 * var(--u)), env(safe-area-inset-bottom));
+  padding: max(calc(8 * var(--u)), env(safe-area-inset-top)) calc(6 * var(--u))
+    max(calc(8 * var(--u)), env(safe-area-inset-bottom));
 }
 
 /* ---------- Header ---------- */
@@ -85,8 +85,8 @@ button:focus-visible {
 
 .notes-label {
   position: absolute;
-  left: 0;
-  top: calc(20 * var(--u));
+  left: calc(4 * var(--u));
+  top: calc(22 * var(--u));
   margin: 0;
   font-size: calc(18 * var(--u));
   font-weight: 700;
@@ -101,12 +101,13 @@ button:focus-visible {
   transition-delay: 200ms;
 }
 
+/* --tu sizes the logo: smaller on phones so the board gets the room. */
 .title {
+  --tu: calc(var(--u) * 0.72);
   position: relative;
   align-self: flex-end;
-  margin-right: calc(4 * var(--u));
-  width: calc(226 * var(--u));
-  height: calc(94 * var(--u));
+  width: calc(226 * var(--tu));
+  height: calc(94 * var(--tu));
   margin-top: 0;
   margin-bottom: 0;
   font-weight: normal;
@@ -122,16 +123,16 @@ button:focus-visible {
 /* Bounds of title.svg inside the 226 × 94 title box (printed by scripts/outline-type.py). */
 .title-art {
   position: absolute;
-  left: calc(-1.148 * var(--u));
-  top: calc(9.387 * var(--u));
-  width: calc(226.168 * var(--u));
-  height: calc(85.079 * var(--u));
+  left: calc(-1.148 * var(--tu));
+  top: calc(9.387 * var(--tu));
+  width: calc(226.168 * var(--tu));
+  height: calc(85.079 * var(--tu));
   pointer-events: none;
 }
 
 .meta {
-  margin-top: calc(28 * var(--u));
-  padding-right: calc(2 * var(--u));
+  margin-top: calc(8 * var(--u));
+  padding: 0 calc(4 * var(--u));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -168,23 +169,27 @@ button:focus-visible {
 
 /* ---------- Board ---------- */
 
+/* Phones: full-width board with tight gaps and thin lines. Desktop restores the Figma values. */
 .board {
+  --box-gap: calc(3 * var(--u));
+  --box-border: calc(2.5 * var(--u));
+  --cell-line: calc(1.5 * var(--u));
   position: relative;
-  width: calc(364 * var(--u));
+  width: 100%;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: calc(6.333 * var(--u));
+  gap: var(--box-gap);
   touch-action: manipulation;
 }
 
 .box {
   aspect-ratio: 1;
-  border: calc(3 * var(--u)) solid var(--line);
+  border: var(--box-border) solid var(--line);
   border-radius: calc(10 * var(--u));
   overflow: hidden;
   display: grid;
   grid-template: repeat(3, 1fr) / repeat(3, 1fr);
-  gap: calc(2 * var(--u));
+  gap: var(--cell-line);
   background: var(--line);
 }
 
@@ -276,7 +281,8 @@ button:focus-visible {
 
 .controls {
   position: relative;
-  height: calc(70 * var(--u));
+  height: calc(64 * var(--u));
+  padding: 0 calc(8 * var(--u));
   display: flex;
   justify-content: space-between;
 }
@@ -363,16 +369,17 @@ button:focus-visible {
 /* ---------- Tray ---------- */
 
 .tray {
+  --slot: calc(38 * var(--u));
   position: relative;
-  margin: 0 calc(-9 * var(--u)) 0 calc(-8 * var(--u));
+  padding: 0 calc(2 * var(--u)) calc(3 * var(--u)) calc(4 * var(--u));
   display: flex;
   justify-content: space-between;
 }
 
 .tray-slot {
   position: relative;
-  width: calc(34 * var(--u));
-  height: calc(34 * var(--u));
+  width: var(--slot);
+  height: var(--slot);
   isolation: isolate;
   transition: opacity 200ms ease, transform 120ms ease;
 }
@@ -592,7 +599,11 @@ button:focus-visible {
 
   .board {
     --u: calc(var(--du) * 620 / 364);
+    --box-gap: calc(6.333 * var(--u));
+    --box-border: calc(3 * var(--u));
+    --cell-line: calc(2 * var(--u));
     grid-area: board;
+    width: calc(364 * var(--u));
   }
 
   .cell:hover:not(.is-selected):not(.is-highlighted) {
@@ -605,7 +616,7 @@ button:focus-visible {
   }
 
   .title {
-    margin-right: 0;
+    --tu: var(--u);
   }
 
   .notes-label {
@@ -615,17 +626,19 @@ button:focus-visible {
 
   .meta {
     margin-top: calc(40 * var(--u));
-    padding-right: 0;
+    padding: 0;
   }
 
   .controls {
     --u: calc(var(--du) * 1.15);
     grid-area: controls;
     height: calc(76 * var(--u));
+    padding: 0;
   }
 
   .tray {
     --u: calc(var(--du) * 1.9);
+    --slot: calc(34 * var(--u));
     grid-area: tray;
     margin: calc(36 * var(--du)) 0 0;
     display: grid;
