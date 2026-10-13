@@ -1,5 +1,5 @@
 import { useGame } from "../store";
-import { MODE_LABELS } from "../sudoku";
+import { MODE_ICONS, MODE_LABELS } from "../sudoku";
 
 export function Controls() {
   const notesMode = useGame((s) => s.notesMode);
@@ -27,6 +27,9 @@ export function Controls() {
         onClick={cycleHighlightMode}
         aria-label={`Highlight mode: ${MODE_LABELS[highlightMode]}. Tap to change.`}
       >
+        <span className="control-emoji" aria-hidden>
+          {MODE_ICONS[highlightMode]}
+        </span>
         <span>{MODE_LABELS[highlightMode]}</span>
       </button>
     </div>

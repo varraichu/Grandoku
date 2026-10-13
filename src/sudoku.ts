@@ -8,6 +8,13 @@ export const MODE_LABELS: Record<HighlightMode, string> = {
   box: "Box",
 };
 
+// Placeholder icons until the real artwork arrives.
+export const MODE_ICONS: Record<HighlightMode, string> = {
+  column: "🏛️",
+  row: "🚣",
+  box: "📦",
+};
+
 export const nextMode = (mode: HighlightMode): HighlightMode =>
   MODES[(MODES.indexOf(mode) + 1) % MODES.length];
 

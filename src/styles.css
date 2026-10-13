@@ -1,7 +1,8 @@
-/* Every size below is in Figma design pixels (402 × 851 frame) multiplied by --u,
-   so the screen scales to fit the viewport while keeping the Figma proportions. */
+/* Every size below is in Figma design pixels (402-wide frame) multiplied by --u.
+   Phones fill the screen width; the 700 floor is the compact layout height, so short
+   viewports scale down instead of scrolling. Spare height is spread between sections. */
 :root {
-  --u: min(calc(100vw / 402), calc(100dvh / 851));
+  --u: min(calc(100vw / 402), calc(100dvh / 700));
   --bg: #eae5d9;
   --bg-notes: #c9c3c1;
   --ink: #000;
@@ -50,6 +51,7 @@ button:focus-visible {
   transition: background-color 400ms ease;
   display: flex;
   justify-content: center;
+  align-items: center;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -63,22 +65,28 @@ button:focus-visible {
 .screen {
   position: relative;
   width: calc(402 * var(--u));
-  height: calc(851 * var(--u));
+  height: 100dvh;
+  max-height: calc(851 * var(--u));
   flex: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  padding: max(calc(10 * var(--u)), env(safe-area-inset-top)) calc(18 * var(--u))
+    max(calc(10 * var(--u)), env(safe-area-inset-bottom));
 }
 
 /* ---------- Header ---------- */
 
 .header {
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: calc(200 * var(--u));
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .notes-label {
   position: absolute;
-  left: calc(18 * var(--u));
-  top: calc(64 * var(--u));
+  left: 0;
+  top: calc(20 * var(--u));
   margin: 0;
   font-size: calc(18 * var(--u));
   font-weight: 700;
@@ -94,12 +102,13 @@ button:focus-visible {
 }
 
 .title {
-  position: absolute;
-  left: calc(154 * var(--u));
-  top: calc(44 * var(--u));
+  position: relative;
+  align-self: flex-end;
+  margin-right: calc(4 * var(--u));
   width: calc(226 * var(--u));
   height: calc(94 * var(--u));
-  margin: 0;
+  margin-top: 0;
+  margin-bottom: 0;
   font-weight: normal;
   line-height: normal;
   white-space: nowrap;
@@ -121,10 +130,8 @@ button:focus-visible {
 }
 
 .meta {
-  position: absolute;
-  left: calc(18 * var(--u));
-  right: calc(20 * var(--u));
-  top: calc(176 * var(--u));
+  margin-top: calc(28 * var(--u));
+  padding-right: calc(2 * var(--u));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -162,9 +169,7 @@ button:focus-visible {
 /* ---------- Board ---------- */
 
 .board {
-  position: absolute;
-  left: calc(18 * var(--u));
-  top: calc(243 * var(--u));
+  position: relative;
   width: calc(364 * var(--u));
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -270,17 +275,15 @@ button:focus-visible {
 /* ---------- Controls ---------- */
 
 .controls {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: calc(640 * var(--u));
+  position: relative;
   height: calc(70 * var(--u));
+  display: flex;
+  justify-content: space-between;
 }
 
 .control {
-  position: absolute;
-  top: 0;
-  width: calc(90 * var(--u));
+  position: relative;
+  min-width: calc(70 * var(--u));
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -298,10 +301,6 @@ button:focus-visible {
   pointer-events: none;
 }
 
-.control-erase {
-  left: calc(5 * var(--u));
-}
-
 .control-erase img {
   width: calc(50.181 * var(--u));
   height: calc(39.83 * var(--u));
@@ -312,10 +311,6 @@ button:focus-visible {
 
 .control-erase:active img {
   transform: rotate(-8deg) scale(0.94);
-}
-
-.control-notes {
-  left: calc(152 * var(--u));
 }
 
 .control-notes img {
@@ -356,17 +351,20 @@ button:focus-visible {
   transform: scaleX(1);
 }
 
-.control-mode {
-  left: calc(292 * var(--u));
+/* Placeholder emoji icons for the highlight modes. */
+.control-emoji {
+  height: calc(42 * var(--u));
+  display: flex;
+  align-items: center;
+  font-size: calc(32 * var(--u));
+  line-height: 1;
 }
 
 /* ---------- Tray ---------- */
 
 .tray {
-  position: absolute;
-  left: calc(10 * var(--u));
-  right: calc(9 * var(--u));
-  top: calc(748 * var(--u));
+  position: relative;
+  margin: 0 calc(-9 * var(--u)) 0 calc(-8 * var(--u));
   display: flex;
   justify-content: space-between;
 }
@@ -575,15 +573,13 @@ button:focus-visible {
     --u: calc(var(--du) * 1.2);
   }
 
-  .app {
-    align-items: center;
-  }
-
   .screen {
     width: calc(1100 * var(--du));
     height: calc(720 * var(--du));
+    max-height: none;
     padding: calc(50 * var(--du));
     display: grid;
+    justify-content: normal;
     grid-template-columns: calc(620 * var(--du)) 1fr;
     grid-template-rows: auto 1fr auto auto;
     grid-template-areas:
@@ -597,9 +593,6 @@ button:focus-visible {
   .board {
     --u: calc(var(--du) * 620 / 364);
     grid-area: board;
-    position: relative;
-    left: auto;
-    top: auto;
   }
 
   .cell:hover:not(.is-selected):not(.is-highlighted) {
@@ -609,18 +602,10 @@ button:focus-visible {
   .header {
     --u: calc(var(--du) * 1.15);
     grid-area: header;
-    position: relative;
-    inset: auto;
-    height: auto;
-    display: flex;
-    flex-direction: column;
   }
 
   .title {
-    position: relative;
-    left: auto;
-    top: auto;
-    align-self: flex-end;
+    margin-right: 0;
   }
 
   .notes-label {
@@ -629,38 +614,20 @@ button:focus-visible {
   }
 
   .meta {
-    position: relative;
-    left: auto;
-    right: auto;
-    top: auto;
     margin-top: calc(40 * var(--u));
+    padding-right: 0;
   }
 
   .controls {
     --u: calc(var(--du) * 1.15);
     grid-area: controls;
-    position: relative;
-    top: auto;
-    display: flex;
-    justify-content: space-between;
     height: calc(76 * var(--u));
-  }
-
-  .control {
-    position: relative;
-    left: auto;
-    width: auto;
-    min-width: calc(70 * var(--u));
   }
 
   .tray {
     --u: calc(var(--du) * 1.9);
     grid-area: tray;
-    position: relative;
-    left: auto;
-    right: auto;
-    top: auto;
-    margin-top: calc(36 * var(--du));
+    margin: calc(36 * var(--du)) 0 0;
     display: grid;
     grid-template-columns: repeat(3, calc(34 * var(--u)));
     justify-content: space-between;
