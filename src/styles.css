@@ -1,0 +1,717 @@
+@font-face {
+  font-family: "Integral CF";
+  src: url("/fonts/integralcf-mediumoblique.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Annabelle JF";
+  src: url("/fonts/Annabelle JF Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: block;
+}
+
+/* Every size below is in Figma design pixels (402 × 851 frame) multiplied by --u,
+   so the screen scales to fit the viewport while keeping the Figma proportions. */
+:root {
+  --u: min(calc(100vw / 402), calc(100dvh / 851));
+  --bg: #eae5d9;
+  --bg-notes: #c9c3c1;
+  --ink: #000;
+  --ink-title: #101820;
+  --line: #fff;
+  --accent: #538393;
+  --hl: rgba(83, 141, 147, 0.2);
+  --hl-selected: rgba(83, 141, 147, 0.6);
+  --mistake: #c43d3d;
+  --flip: 600ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+button:focus-visible {
+  outline: calc(2 * var(--u)) solid var(--accent);
+  outline-offset: calc(2 * var(--u));
+}
+
+.app {
+  --cell-bg: var(--bg);
+  min-height: 100dvh;
+  background: var(--bg);
+  transition: background-color 400ms ease;
+  display: flex;
+  justify-content: center;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.app.notes-mode {
+  --cell-bg: var(--bg-notes);
+  background: var(--bg-notes);
+}
+
+.screen {
+  position: relative;
+  width: calc(402 * var(--u));
+  height: calc(851 * var(--u));
+  flex: none;
+}
+
+/* ---------- Header ---------- */
+
+.header {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: calc(200 * var(--u));
+}
+
+.notes-label {
+  position: absolute;
+  left: calc(18 * var(--u));
+  top: calc(64 * var(--u));
+  margin: 0;
+  font-size: calc(18 * var(--u));
+  font-weight: 700;
+  opacity: 0;
+  transform: translateY(calc(-6 * var(--u)));
+  transition: opacity 300ms ease, transform 300ms ease;
+}
+
+.notes-mode .notes-label {
+  opacity: 1;
+  transform: none;
+  transition-delay: 200ms;
+}
+
+.title {
+  position: absolute;
+  left: calc(154 * var(--u));
+  top: calc(44 * var(--u));
+  width: calc(226 * var(--u));
+  height: calc(94 * var(--u));
+  margin: 0;
+  font-weight: normal;
+  line-height: normal;
+  white-space: nowrap;
+  transition: transform var(--flip);
+}
+
+.notes-mode .title {
+  transform: rotate(180deg);
+}
+
+.title-ariana,
+.title-randoku {
+  position: absolute;
+  font-family: "Integral CF", "Helvetica Neue", sans-serif;
+  font-size: calc(29.592 * var(--u));
+  color: var(--ink-title);
+  text-transform: uppercase;
+}
+
+.title-ariana {
+  left: calc(104 * var(--u));
+  top: 0;
+}
+
+.title-randoku {
+  left: calc(59.33 * var(--u));
+  top: calc(27.01 * var(--u));
+}
+
+.title-g {
+  position: absolute;
+  left: 0;
+  top: calc(7 * var(--u));
+  font-family: "Annabelle JF", cursive;
+  font-size: calc(69.991 * var(--u));
+  letter-spacing: calc(-4.8994 * var(--u));
+  color: #000;
+}
+
+.meta {
+  position: absolute;
+  left: calc(18 * var(--u));
+  right: calc(20 * var(--u));
+  top: calc(176 * var(--u));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: calc(18 * var(--u));
+  font-weight: 700;
+  line-height: 1;
+}
+
+.flip {
+  display: inline-block;
+  transition: transform var(--flip);
+}
+
+.notes-mode .flip {
+  transform: scaleY(-1);
+}
+
+.timer {
+  font-variant-numeric: tabular-nums;
+}
+
+.difficulty {
+  font-size: calc(12 * var(--u));
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.55;
+  padding: calc(4 * var(--u)) calc(8 * var(--u));
+}
+
+.difficulty:hover {
+  opacity: 0.9;
+}
+
+/* ---------- Board ---------- */
+
+.board {
+  position: absolute;
+  left: calc(18 * var(--u));
+  top: calc(243 * var(--u));
+  width: calc(364 * var(--u));
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: calc(6.333 * var(--u));
+  touch-action: manipulation;
+}
+
+.box {
+  aspect-ratio: 1;
+  border: calc(3 * var(--u)) solid var(--line);
+  border-radius: calc(10 * var(--u));
+  overflow: hidden;
+  display: grid;
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  gap: calc(2 * var(--u));
+  background: var(--line);
+}
+
+.cell {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  background: var(--cell-bg);
+  transition: background-color 400ms ease;
+  cursor: pointer;
+}
+
+.cell.is-highlighted {
+  background: linear-gradient(var(--hl), var(--hl)), var(--cell-bg);
+}
+
+.cell.is-selected {
+  background: linear-gradient(var(--hl-selected), var(--hl-selected)), var(--cell-bg);
+}
+
+.cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+/* Clues fill the cell edge to edge (as in Figma); player entries sit inset with rounded corners. */
+.cell.is-entry .cover {
+  inset: calc(3 * var(--u));
+  width: calc(100% - 6 * var(--u));
+  height: calc(100% - 6 * var(--u));
+  border-radius: calc(4 * var(--u));
+}
+
+.cell.is-clue::after,
+.cell.is-entry::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cell.is-highlighted.is-clue::after,
+.cell.is-highlighted.is-entry::after {
+  background: var(--hl);
+}
+
+.cell.is-selected.is-clue::after,
+.cell.is-selected.is-entry::after {
+  background: rgba(83, 141, 147, 0.25);
+  box-shadow: inset 0 0 0 calc(3 * var(--u)) var(--accent);
+}
+
+.cell.is-mistake .cover {
+  outline: calc(2 * var(--u)) solid var(--mistake);
+  outline-offset: calc(-2 * var(--u));
+}
+
+.cell.is-mistake::before {
+  content: "";
+  position: absolute;
+  right: calc(2 * var(--u));
+  top: calc(2 * var(--u));
+  width: calc(7 * var(--u));
+  height: calc(7 * var(--u));
+  border-radius: 50%;
+  background: var(--mistake);
+  border: calc(1.5 * var(--u)) solid #fff;
+  z-index: 1;
+}
+
+/* Notes: digit 1 top-left → digit 9 bottom-right, 7px swatches on a 12px pitch (Figma). */
+.note-grid {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: calc(31 * var(--u));
+  height: calc(31 * var(--u));
+  display: grid;
+  grid-template: repeat(3, calc(7 * var(--u))) / repeat(3, calc(7 * var(--u)));
+  gap: calc(5 * var(--u));
+  pointer-events: none;
+}
+
+/* ---------- Controls ---------- */
+
+.controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(640 * var(--u));
+  height: calc(70 * var(--u));
+}
+
+.control {
+  position: absolute;
+  top: 0;
+  width: calc(90 * var(--u));
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: calc(4 * var(--u));
+  font-size: calc(16 * var(--u));
+  font-weight: 500;
+  line-height: 1;
+  padding-bottom: calc(4 * var(--u));
+}
+
+.control img {
+  display: block;
+  pointer-events: none;
+}
+
+.control-erase {
+  left: calc(5 * var(--u));
+}
+
+.control-erase img {
+  width: calc(50.181 * var(--u));
+  height: calc(39.83 * var(--u));
+  object-fit: cover;
+  margin-bottom: calc(6 * var(--u));
+  transition: transform 150ms ease;
+}
+
+.control-erase:active img {
+  transform: rotate(-8deg) scale(0.94);
+}
+
+.control-notes {
+  left: calc(152 * var(--u));
+}
+
+.control-notes img {
+  width: calc(26.011 * var(--u));
+  height: calc(33.838 * var(--u));
+  object-fit: cover;
+  transform: rotate(-31.24deg);
+  margin-bottom: calc(10 * var(--u));
+  transition: transform 300ms ease;
+}
+
+.control-notes.is-on img {
+  transform: rotate(-31.24deg) translateY(calc(-4 * var(--u))) scale(1.12);
+}
+
+.control-notes span {
+  position: relative;
+}
+
+.control-notes.is-on span {
+  font-weight: 700;
+}
+
+.control-notes span::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(-5 * var(--u));
+  height: calc(2 * var(--u));
+  border-radius: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transition: transform 250ms ease;
+}
+
+.control-notes.is-on span::after {
+  transform: scaleX(1);
+}
+
+.control-mode {
+  left: calc(292 * var(--u));
+}
+
+/* ---------- Tray ---------- */
+
+.tray {
+  position: absolute;
+  left: calc(10 * var(--u));
+  right: calc(9 * var(--u));
+  top: calc(748 * var(--u));
+  display: flex;
+  justify-content: space-between;
+}
+
+.tray-slot {
+  position: relative;
+  width: calc(34 * var(--u));
+  height: calc(34 * var(--u));
+  isolation: isolate;
+  transition: opacity 200ms ease, transform 120ms ease;
+}
+
+/* Album-colour block peeking out under each cover (Figma's tray "underline"). */
+.tray-slot::before {
+  content: "";
+  position: absolute;
+  left: calc(-2 * var(--u));
+  top: calc(3 * var(--u));
+  width: 100%;
+  height: 100%;
+  border-radius: calc(4 * var(--u));
+  background: var(--album);
+  z-index: -1;
+}
+
+.tray-slot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 1px solid #fff;
+  border-radius: calc(4 * var(--u));
+  pointer-events: none;
+}
+
+.tray-slot:active:not(:disabled) {
+  transform: translateY(calc(2 * var(--u)));
+}
+
+.tray-slot.is-faded {
+  opacity: 0.25;
+  cursor: default;
+}
+
+/* ---------- Note peek ---------- */
+
+.peek-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  background: rgba(16, 24, 32, 0.25);
+  animation: fade-in 120ms ease;
+}
+
+.peek-backdrop.is-passive,
+.peek-backdrop.is-passive .peek {
+  pointer-events: none;
+}
+
+.peek {
+  display: grid;
+  grid-template-columns: repeat(3, calc(82 * var(--u)));
+  gap: calc(10 * var(--u));
+  padding: calc(14 * var(--u));
+  background: var(--bg);
+  border: calc(3 * var(--u)) solid var(--line);
+  border-radius: calc(14 * var(--u));
+  box-shadow: 0 calc(12 * var(--u)) calc(40 * var(--u)) rgba(16, 24, 32, 0.25);
+  animation: pop-in 160ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.peek-item {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(4 * var(--u));
+}
+
+.peek-item img {
+  width: calc(82 * var(--u));
+  height: calc(82 * var(--u));
+  object-fit: cover;
+  border-radius: calc(6 * var(--u));
+  border: calc(2 * var(--u)) solid var(--album);
+}
+
+.peek-item figcaption {
+  font-size: calc(10 * var(--u));
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.peek-item.is-empty {
+  width: calc(82 * var(--u));
+  height: calc(82 * var(--u));
+  border-radius: calc(6 * var(--u));
+  border: calc(1.5 * var(--u)) dashed rgba(0, 0, 0, 0.15);
+}
+
+/* ---------- Game sheet (win / new game) ---------- */
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  background: rgba(16, 24, 32, 0.35);
+  animation: fade-in 200ms ease;
+}
+
+.sheet {
+  width: calc(340 * var(--u));
+  padding: calc(28 * var(--u)) calc(24 * var(--u)) calc(24 * var(--u));
+  background: var(--bg);
+  border: calc(3 * var(--u)) solid var(--line);
+  border-radius: calc(16 * var(--u));
+  text-align: center;
+  animation: pop-in 240ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.sheet h2 {
+  margin: 0;
+  font-family: "Integral CF", "Helvetica Neue", sans-serif;
+  font-weight: 500;
+  font-size: calc(32 * var(--u));
+  text-transform: uppercase;
+  color: var(--ink-title);
+}
+
+.sheet-time {
+  margin: calc(8 * var(--u)) 0 0;
+  font-size: calc(16 * var(--u));
+  font-weight: 500;
+}
+
+.difficulty-picker {
+  margin-top: calc(22 * var(--u));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: calc(6 * var(--u));
+}
+
+.difficulty-picker button {
+  padding: calc(8 * var(--u)) calc(12 * var(--u));
+  border-radius: 999px;
+  border: calc(1.5 * var(--u)) solid var(--ink-title);
+  font-size: calc(13 * var(--u));
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.difficulty-picker button.is-active {
+  background: var(--ink-title);
+  color: var(--bg);
+}
+
+.sheet-actions {
+  margin-top: calc(24 * var(--u));
+  display: flex;
+  gap: calc(10 * var(--u));
+  justify-content: center;
+}
+
+.sheet-actions button {
+  padding: calc(12 * var(--u)) calc(22 * var(--u));
+  border-radius: calc(10 * var(--u));
+  font-size: calc(15 * var(--u));
+  font-weight: 700;
+}
+
+.sheet-primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.sheet-secondary {
+  border: calc(1.5 * var(--u)) solid rgba(0, 0, 0, 0.2);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+/* ---------- Desktop: landscape layout ----------
+   Board on the left, title / meta / controls / tray in a column on the right.
+   --du is one unit of a 1100 × 720 desktop frame; each section derives its own --u from it
+   so the phone-frame sizes above scale up per section. */
+@media (min-width: 860px) and (min-aspect-ratio: 1/1) {
+  :root {
+    --du: min(calc(100vw / 1100), calc(100dvh / 720));
+    --u: calc(var(--du) * 1.2);
+  }
+
+  .app {
+    align-items: center;
+  }
+
+  .screen {
+    width: calc(1100 * var(--du));
+    height: calc(720 * var(--du));
+    padding: calc(50 * var(--du));
+    display: grid;
+    grid-template-columns: calc(620 * var(--du)) 1fr;
+    grid-template-rows: auto 1fr auto auto;
+    grid-template-areas:
+      "board header"
+      "board ."
+      "board controls"
+      "board tray";
+    column-gap: calc(56 * var(--du));
+  }
+
+  .board {
+    --u: calc(var(--du) * 620 / 364);
+    grid-area: board;
+    position: relative;
+    left: auto;
+    top: auto;
+  }
+
+  .cell:hover:not(.is-selected):not(.is-highlighted) {
+    background: linear-gradient(rgba(83, 141, 147, 0.1), rgba(83, 141, 147, 0.1)), var(--cell-bg);
+  }
+
+  .header {
+    --u: calc(var(--du) * 1.15);
+    grid-area: header;
+    position: relative;
+    inset: auto;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .title {
+    position: relative;
+    left: auto;
+    top: auto;
+    align-self: flex-end;
+  }
+
+  .notes-label {
+    left: 0;
+    top: calc(4 * var(--u));
+  }
+
+  .meta {
+    position: relative;
+    left: auto;
+    right: auto;
+    top: auto;
+    margin-top: calc(40 * var(--u));
+  }
+
+  .controls {
+    --u: calc(var(--du) * 1.15);
+    grid-area: controls;
+    position: relative;
+    top: auto;
+    display: flex;
+    justify-content: space-between;
+    height: calc(76 * var(--u));
+  }
+
+  .control {
+    position: relative;
+    left: auto;
+    width: auto;
+    min-width: calc(70 * var(--u));
+  }
+
+  .tray {
+    --u: calc(var(--du) * 1.9);
+    grid-area: tray;
+    position: relative;
+    left: auto;
+    right: auto;
+    top: auto;
+    margin-top: calc(36 * var(--du));
+    display: grid;
+    grid-template-columns: repeat(3, calc(34 * var(--u)));
+    justify-content: space-between;
+    row-gap: calc(14 * var(--u));
+    padding-left: calc(2 * var(--u));
+  }
+
+  .tray-slot:hover:not(:disabled) {
+    transform: translateY(calc(-2 * var(--u)));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+}

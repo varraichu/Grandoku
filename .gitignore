@@ -1,0 +1,9 @@
+node_modules
+dist
+.DS_Store
+.playwright-mcp
+
+# Licensed fonts are not redistributed — see README
+Fonts/
+public/fonts/
+*.tsbuildinfo
