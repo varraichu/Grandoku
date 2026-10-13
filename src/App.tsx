@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useGame } from "./store";
 import { Header } from "./components/Header";
 import { Board } from "./components/Board";
@@ -6,6 +6,17 @@ import { Controls } from "./components/Controls";
 import { Tray } from "./components/Tray";
 import { NotePeek } from "./components/NotePeek";
 import { GameSheet } from "./components/GameSheet";
+import { HelpSheet } from "./components/HelpSheet";
+
+const HELP_SEEN_KEY = "grandoku:help-seen";
+
+const hasSeenHelp = () => {
+  try {
+    return localStorage.getItem(HELP_SEEN_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
 
 const isPeekKey = (e: KeyboardEvent) => e.key === "Shift" || e.key === " ";
 
@@ -19,6 +30,16 @@ export function App() {
   const [peekKeyHeld, setPeekKeyHeld] = useState(false);
   const [longPressCell, setLongPressCell] = useState<number | null>(null);
   const [newGameOpen, setNewGameOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(() => !hasSeenHelp());
+
+  const closeHelp = useCallback(() => {
+    setHelpOpen(false);
+    try {
+      localStorage.setItem(HELP_SEEN_KEY, "1");
+    } catch {
+      // Private mode etc.: the popup just shows again next visit.
+    }
+  }, []);
 
   // Timer: ticks once a second while the tab is visible and the game is unsolved.
   useEffect(() => {
@@ -31,6 +52,7 @@ export function App() {
   // Keyboard: covers 1-9, erase, arrows, notes toggle, undo, and hold-to-peek.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (document.querySelector('[aria-modal="true"]')) return; // a dialog owns the keyboard
       const s = useGame.getState();
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
         e.preventDefault();
@@ -88,7 +110,7 @@ export function App() {
   return (
     <div className={`app${notesMode ? " notes-mode" : ""}`}>
       <main className="screen">
-        <Header onDifficultyClick={() => setNewGameOpen(true)} />
+        <Header onDifficultyClick={() => setNewGameOpen(true)} onHelpClick={() => setHelpOpen(true)} />
         <Board onHover={setHoveredCell} onPeek={setLongPressCell} />
         <Controls />
         <Tray />
@@ -105,6 +127,7 @@ export function App() {
       )}
       {won && <GameSheet variant="win" onClose={() => {}} />}
       {!won && newGameOpen && <GameSheet variant="new" onClose={() => setNewGameOpen(false)} />}
+      {helpOpen && <HelpSheet onClose={closeHelp} />}
     </div>
   );
 }

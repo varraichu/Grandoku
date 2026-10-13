@@ -15,12 +15,20 @@ const formatTime = (s: number) => {
 
 export { formatTime };
 
-export function Header({ onDifficultyClick }: { onDifficultyClick: () => void }) {
+interface HeaderProps {
+  onDifficultyClick: () => void;
+  onHelpClick: () => void;
+}
+
+export function Header({ onDifficultyClick, onHelpClick }: HeaderProps) {
   const elapsed = useGame((s) => s.elapsed);
   const difficulty = useGame((s) => s.difficulty);
 
   return (
     <header className="header">
+      <button className="help-button" onClick={onHelpClick} aria-label="How to play">
+        ?
+      </button>
       <p className="notes-label" aria-hidden>
         Notes
       </p>
