@@ -29,12 +29,12 @@ export function HelpSheet({ onClose }: { onClose: () => void }) {
           How to play
         </h2>
         <p className="help-lead">
-          It's regular sudoku, but each number from 1 to 9 is an album. Fill every row, column and 3×3 box with all
-          nine albums, using each one once.{" "}
+          Switchin' the sudoku for you! Numbers 1-9 are now Ariana Grande albums. Fill every row, column and 3×3 box
+          with all nine albums, using each one once.{" "}
           <a href={RULES_URL} target="_blank" rel="noreferrer">
             Read the full sudoku rules
-          </a>
-          .
+          </a>{" "}
+          (Math class never was good)
         </p>
 
         <h3>The albums</h3>
