@@ -19,14 +19,14 @@ Keyboard: `1`–`9` place, `Backspace` erase, arrows move, `N` notes, `M` mode, 
 
 ## Fonts
 
-The fonts are commercially licensed and are **not** included in this repo. Put them here before running:
+The title and the "Solved" / "New game" headings use Integral CF and Annabelle JF. Those fonts are commercially licensed, so the repo ships them as pre-outlined SVGs in `public/type/` and never includes the font files. Everything else uses the system Helvetica Neue stack.
 
-```
-public/fonts/integralcf-mediumoblique.otf   # Integral CF Medium Oblique
-public/fonts/Annabelle JF Regular.ttf        # Annabelle JF
-```
+To change that text, put the fonts in `Fonts/` (gitignored) and regenerate:
 
-Without them the title falls back to system fonts.
+```sh
+pip install fonttools uharfbuzz
+python scripts/outline-type.py .
+```
 
 ## Run
 

@@ -24,10 +24,9 @@ export function Header({ onDifficultyClick }: { onDifficultyClick: () => void })
       <p className="notes-label" aria-hidden>
         Notes
       </p>
-      <h1 className="title" aria-label="Ariana Grandoku">
-        <span className="title-ariana">Ariana</span>
-        <span className="title-g">G</span>
-        <span className="title-randoku">randoku</span>
+      <h1 className="title">
+        {/* Outlined from the licensed fonts so no font files are shipped. */}
+        <img className="title-art" src="/type/title.svg" alt="Ariana Grandoku" draggable={false} />
       </h1>
       <div className="meta">
         <span className="flip">{today()}</span>

@@ -13,7 +13,13 @@ export function GameSheet({ variant, onClose }: { variant: "win" | "new"; onClos
   return (
     <div className="sheet-backdrop">
       <div className="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
-        <h2 id="sheet-title">{variant === "win" ? "Solved" : "New game"}</h2>
+        <h2 id="sheet-title">
+          <img
+            src={variant === "win" ? "/type/solved.svg" : "/type/new-game.svg"}
+            alt={variant === "win" ? "Solved" : "New game"}
+            draggable={false}
+          />
+        </h2>
         {variant === "win" && (
           <p className="sheet-time">
             {current[0].toUpperCase() + current.slice(1)} · {formatTime(elapsed)}
