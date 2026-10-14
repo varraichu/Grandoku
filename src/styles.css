@@ -245,6 +245,7 @@ button:focus-visible {
 }
 
 .difficulty {
+  align-self: center;
   padding: 0 calc(8 * var(--u));
   font-size: calc(12 * var(--u));
   font-weight: 500;
