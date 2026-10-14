@@ -1,4 +1,4 @@
-# Regenerates public/type/*.svg from the licensed fonts in Fonts/ (not committed).
+# Regenerates public/type/title.svg and src/assets/{solved,new-game}.svg from the licensed fonts in Fonts/ (not committed).
 # Usage: pip install fonttools uharfbuzz && python scripts/outline-type.py .
 
 import sys, json
@@ -39,7 +39,9 @@ def write(fname, parts, pad=1.0):
     paths = "".join(f'<path fill="{fill}" d="{d}"/>' for d, _, fill in parts)
     w, h = x1 - x0, y1 - y0
     svg = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{r(x0)} {r(y0)} {r(w)} {r(h)}" width="{r(w)}" height="{r(h)}">{paths}</svg>'
-    open(f"{P}/public/type/{fname}", "w").write(svg)
+    # Sheet headings live in src/assets so Vite inlines them; the title stays in public/type.
+    folder = "public/type" if fname == "title.svg" else "src/assets"
+    open(f"{P}/{folder}/{fname}", "w").write(svg)
     return {"file": fname, "x": r(x0), "y": r(y0), "w": r(w), "h": r(h)}
 
 out = {}

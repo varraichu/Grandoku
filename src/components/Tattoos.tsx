@@ -7,11 +7,11 @@ const TATTOOS = [
   { name: "h2gkmo", aspect: 0.228, scale: 1 },
   { name: "heart", aspect: 1.037, scale: 0.81 },
   { name: "japanese", aspect: 0.84, scale: 1 },
-  { name: "leaves", aspect: 1.05, scale: 1 },
-  { name: "moon", aspect: 0.983, scale: 1.21 },
+  { name: "leaves", aspect: 1.049, scale: 1 },
+  { name: "moon", aspect: 0.981, scale: 1.21 },
   { name: "saturn", aspect: 1.25, scale: 0.81 },
   { name: "tears", aspect: 0.575, scale: 1 },
-  { name: "toulouse", aspect: 3.429, scale: 1 },
+  { name: "toulouse", aspect: 3.441, scale: 1 },
   { name: "umbrella", aspect: 0.853, scale: 0.81 },
 ];
 

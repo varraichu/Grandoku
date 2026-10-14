@@ -1,4 +1,7 @@
 import { useState } from "react";
+// Imported (not in public/) so Vite inlines these small SVGs and the heading shows instantly.
+import newGameArt from "../assets/new-game.svg";
+import solvedArt from "../assets/solved.svg";
 import { useGame, type Difficulty } from "../store";
 import { formatTime } from "./Header";
 
@@ -15,7 +18,7 @@ export function GameSheet({ variant, onClose }: { variant: "win" | "new"; onClos
       <div className="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
         <h2 id="sheet-title">
           <img
-            src={variant === "win" ? "/type/solved.svg" : "/type/new-game.svg"}
+            src={variant === "win" ? solvedArt : newGameArt}
             alt={variant === "win" ? "Solved" : "New game"}
             draggable={false}
           />

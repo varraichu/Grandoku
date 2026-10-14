@@ -11,7 +11,7 @@ export function Controls() {
   return (
     <div className="controls">
       <button className="control control-erase" onClick={erase}>
-        <img src="/icons/Erase_icon.png" alt="" draggable={false} />
+        <img src="/icons/erase.webp" alt="" draggable={false} />
         <span>Erase</span>
       </button>
       <button
@@ -19,7 +19,7 @@ export function Controls() {
         onClick={toggleNotesMode}
         aria-pressed={notesMode}
       >
-        <img src="/icons/Notes.webp" alt="" draggable={false} />
+        <img src="/icons/notes.webp" alt="" draggable={false} />
         <span>Notes</span>
       </button>
       <button

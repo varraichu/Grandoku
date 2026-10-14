@@ -19,7 +19,7 @@ Keyboard: `1`–`9` place, `Backspace` erase, arrows move, `N` notes, `M` mode, 
 
 ## Fonts
 
-The title and the "Solved" / "New game" headings use Integral CF and Annabelle JF. Those fonts are commercially licensed, so the repo ships them as pre-outlined SVGs in `public/type/` and never includes the font files. Everything else uses the system Helvetica Neue stack.
+The title and the "Solved" / "New game" headings use Integral CF and Annabelle JF. Those fonts are commercially licensed, so the repo ships them as pre-outlined SVGs (`public/type/` and `src/assets/`) and never includes the font files. Everything else uses the system Helvetica Neue stack.
 
 To change that text, put the fonts in `Fonts/` (gitignored) and regenerate:
 
