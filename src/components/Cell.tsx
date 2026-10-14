@@ -9,15 +9,27 @@ interface CellProps {
   mistake: boolean;
   selected: boolean;
   highlighted: boolean;
+  /** Set on a just-made wrong placement; a new value replays the shake. */
+  shakeId?: number;
 }
 
-export const Cell = memo(function Cell({ index, value, notes, clue, mistake, selected, highlighted }: CellProps) {
+export const Cell = memo(function Cell({
+  index,
+  value,
+  notes,
+  clue,
+  mistake,
+  selected,
+  highlighted,
+  shakeId,
+}: CellProps) {
   const className = [
     "cell",
     highlighted && "is-highlighted",
     selected && "is-selected",
     value !== null && (clue ? "is-clue" : "is-entry"),
     mistake && "is-mistake",
+    shakeId !== undefined && "is-shaking",
   ]
     .filter(Boolean)
     .join(" ");
@@ -30,7 +42,7 @@ export const Cell = memo(function Cell({ index, value, notes, clue, mistake, sel
   return (
     <div className={className} data-index={index} role="gridcell" aria-selected={selected} aria-label={label}>
       {album ? (
-        <img className="cover" src={album.cover} alt="" draggable={false} />
+        <img key={shakeId} className="cover" src={album.cover} alt="" draggable={false} />
       ) : notes.size > 0 ? (
         <div className="note-grid">
           {albums.map((a) => (

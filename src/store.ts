@@ -5,6 +5,8 @@ import { type Board, type HighlightMode, nextMode, peersOf, usedDigits } from ".
 export type { Difficulty };
 export type Notes = ReadonlyArray<ReadonlySet<number>>;
 
+export const MAX_MISTAKES = 7;
+
 interface Snapshot {
   board: Board;
   notes: Notes;
@@ -22,8 +24,13 @@ interface GameState {
   history: Snapshot[];
   elapsed: number; // seconds
   won: boolean;
+  mistakes: number; // wrong placements this attempt; undo doesn't refund them
+  lost: boolean; // hit MAX_MISTAKES: board locked until restart
+  /** The wrong placement to shake; `id` changes each time so repeats in one cell replay it. */
+  shake: { cell: number; id: number } | null;
 
   newGame: (difficulty: Difficulty) => void;
+  restart: () => void;
   selectCell: (i: number) => void;
   moveSelection: (dRow: number, dCol: number) => void;
   setHighlightMode: (mode: HighlightMode) => void;
@@ -37,6 +44,20 @@ interface GameState {
 
 const emptyNotes = (): Notes => Array.from({ length: 81 }, () => new Set<number>());
 
+/** A fresh attempt at `puzzle`: shared by new games and restarts. */
+const freshAttempt = (puzzle: Board) => ({
+  board: [...puzzle],
+  notes: emptyNotes(),
+  selectedCell: null,
+  history: [],
+  elapsed: 0,
+  won: false,
+  mistakes: 0,
+  lost: false,
+  shake: null,
+  notesMode: false,
+});
+
 function createGame(difficulty: Difficulty) {
   const puzzle = generate(difficulty);
   const result = solve(puzzle);
@@ -45,13 +66,7 @@ function createGame(difficulty: Difficulty) {
     difficulty,
     puzzle,
     solution: result.board,
-    board: [...puzzle],
-    notes: emptyNotes(),
-    selectedCell: null,
-    history: [],
-    elapsed: 0,
-    won: false,
-    notesMode: false,
+    ...freshAttempt(puzzle),
   };
 }
 
@@ -60,6 +75,7 @@ export const useGame = create<GameState>()((set, get) => ({
   highlightMode: "column",
 
   newGame: (difficulty) => set(createGame(difficulty)),
+  restart: () => set(freshAttempt(get().puzzle)),
 
   selectCell: (i) => {
     const { selectedCell, highlightMode } = get();
@@ -82,8 +98,8 @@ export const useGame = create<GameState>()((set, get) => ({
   toggleNotesMode: () => set({ notesMode: !get().notesMode }),
 
   input: (digit) => {
-    const { selectedCell: i, puzzle, board, notes, notesMode, highlightMode, history, solution, won } = get();
-    if (won || i === null || puzzle[i] !== null) return;
+    const { selectedCell: i, puzzle, board, notes, notesMode, highlightMode, history, solution, won, lost } = get();
+    if (won || lost || i === null || puzzle[i] !== null) return;
     if (usedDigits(highlightMode, i, board).has(digit)) return; // faded in the tray
     const snapshot = { board, notes };
 
@@ -94,7 +110,7 @@ export const useGame = create<GameState>()((set, get) => ({
       else cellNotes.add(digit);
       const nextNotes = [...notes];
       nextNotes[i] = cellNotes;
-      return set({ notes: nextNotes, history: [...history, snapshot] });
+      return set({ notes: nextNotes, history: [...history, snapshot], shake: null });
     }
 
     if (board[i] === digit) return;
@@ -112,22 +128,27 @@ export const useGame = create<GameState>()((set, get) => ({
       }
     }
 
+    const wrong = digit !== solution[i];
+    const mistakes = get().mistakes + (wrong ? 1 : 0);
     set({
       board: nextBoard,
       notes: nextNotes,
       history: [...history, snapshot],
       won: nextBoard.every((v, k) => v === solution[k]),
+      mistakes,
+      lost: mistakes >= MAX_MISTAKES,
+      shake: wrong ? { cell: i, id: (get().shake?.id ?? 0) + 1 } : null,
     });
   },
 
   erase: () => {
-    const { selectedCell: i, puzzle, board, notes, history, won } = get();
-    if (won || i === null || puzzle[i] !== null) return;
+    const { selectedCell: i, puzzle, board, notes, history, won, lost } = get();
+    if (won || lost || i === null || puzzle[i] !== null) return;
     const snapshot = { board, notes };
     if (board[i] !== null) {
       const nextBoard = [...board];
       nextBoard[i] = null;
-      set({ board: nextBoard, history: [...history, snapshot] });
+      set({ board: nextBoard, history: [...history, snapshot], shake: null });
     } else if (notes[i].size > 0) {
       const nextNotes = [...notes];
       nextNotes[i] = new Set();
@@ -136,14 +157,14 @@ export const useGame = create<GameState>()((set, get) => ({
   },
 
   undo: () => {
-    const { history, won } = get();
-    if (won || history.length === 0) return;
+    const { history, won, lost } = get();
+    if (won || lost || history.length === 0) return;
     const prev = history[history.length - 1];
-    set({ board: prev.board, notes: prev.notes, history: history.slice(0, -1) });
+    set({ board: prev.board, notes: prev.notes, history: history.slice(0, -1), shake: null });
   },
 
   tick: () => {
-    if (!get().won) set({ elapsed: get().elapsed + 1 });
+    if (!get().won && !get().lost) set({ elapsed: get().elapsed + 1 });
   },
 }));
 

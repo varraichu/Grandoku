@@ -25,6 +25,7 @@ export function Board({ onHover, onPeek }: BoardProps) {
   const selectedCell = useGame((s) => s.selectedCell);
   const highlightMode = useGame((s) => s.highlightMode);
   const selectCell = useGame((s) => s.selectCell);
+  const shake = useGame((s) => s.shake);
 
   const highlighted = useMemo(
     () => (selectedCell === null ? new Set<number>() : highlightedCells(highlightMode, selectedCell)),
@@ -107,6 +108,7 @@ export function Board({ onHover, onPeek }: BoardProps) {
               mistake={isMistake({ puzzle, board, solution }, i)}
               selected={selectedCell === i}
               highlighted={highlighted.has(i)}
+              shakeId={shake?.cell === i ? shake.id : undefined}
             />
           ))}
         </div>

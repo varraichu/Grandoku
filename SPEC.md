@@ -42,6 +42,7 @@ Sudoku where the nine symbols are Ariana Grande album covers instead of digits. 
 ### Filtered tray
 - The tray below the board always shows all nine covers in fixed slots, ordered by digit. Slots never move or reflow.
 - Covers that are already used in the active unit are faded and not tappable. The rest are full opacity.
+- A cover with all nine placed correctly on the board is greyed out (grayscale) and not tappable, whatever the selection.
   - `column` / `row` / `box`: fade digits already present in that unit.
   - `cell`: does not fade digits present in the cell's row, column, or box, but highlights all those areas.
 - Use placed values for filtering, not notes.
@@ -71,9 +72,10 @@ Sudoku where the nine symbols are Ariana Grande album covers instead of digits. 
 
 ## Other behavior
 
-- Clue cells are visually distinct and can't be edited.
+- Clue cells can't be edited. Correct entries fill the cell edge to edge like clues (and stay editable); wrong entries sit inset with rounded corners.
 - Undo button (and Cmd/Ctrl+Z on desktop) reverts the last action, including auto-cleared notes.
-- Mistakes: check-on-entry default to flagging a cell whose value doesn't match `solution`.
+- Mistakes: check-on-entry default to flagging a cell whose value doesn't match `solution`. A wrong placement shakes once as it lands, with the red outline.
+- Mistake counter in the header (`n/7`). Every wrong placement counts; undo doesn't refund it. The 7th mistake locks the board and shows a Game over sheet whose Restart replays the same puzzle with placements, notes, undo history, mistakes and timer reset.
 - Win state when `board` matches `solution`.
 
 ## Build order

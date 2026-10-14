@@ -204,6 +204,23 @@ button:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+.mistakes {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mistakes small {
+  font-size: calc(12 * var(--u));
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.55;
+}
+
+.mistakes.has-mistakes {
+  color: var(--mistake);
+}
+
 .difficulty {
   font-size: calc(12 * var(--u));
   font-weight: 500;
@@ -269,8 +286,8 @@ button:focus-visible {
   pointer-events: none;
 }
 
-/* Clues fill the cell edge to edge (as in Figma); player entries sit inset with rounded corners. */
-.cell.is-entry .cover {
+/* Clues and correct entries fill the cell edge to edge (as in Figma); wrong entries sit inset with rounded corners. */
+.cell.is-entry.is-mistake .cover {
   inset: calc(3 * var(--u));
   width: calc(100% - 6 * var(--u));
   height: calc(100% - 6 * var(--u));
@@ -312,6 +329,22 @@ button:focus-visible {
   background: var(--mistake);
   border: calc(1.5 * var(--u)) solid #fff;
   z-index: 1;
+}
+
+/* A wrong placement shakes once as it lands. */
+.cell.is-shaking .cover {
+  animation: shake 400ms ease-in-out;
+}
+
+@keyframes shake {
+  20%,
+  60% {
+    transform: translateX(calc(-3 * var(--u)));
+  }
+  40%,
+  80% {
+    transform: translateX(calc(3 * var(--u)));
+  }
 }
 
 /* Notes: digit 1 top-left → digit 9 bottom-right, 7px swatches on a 12px pitch (Figma). */
@@ -463,6 +496,13 @@ button:focus-visible {
 
 .tray-slot.is-faded {
   opacity: 0.25;
+  cursor: default;
+}
+
+/* All nine placed correctly: greyed out for good (colour block included). */
+.tray-slot.is-done {
+  filter: grayscale(1);
+  opacity: 0.35;
   cursor: default;
 }
 
@@ -815,6 +855,14 @@ button:focus-visible {
   .meta {
     margin-top: calc(40 * var(--u));
     padding: 0;
+  }
+
+  /* The side column is too narrow for a one-line counter: stack the label over the count. */
+  .mistakes {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(3 * var(--u));
   }
 
   .controls {

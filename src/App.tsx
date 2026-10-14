@@ -24,6 +24,7 @@ const isPeekKey = (e: KeyboardEvent) => e.key === "Shift" || e.key === " ";
 export function App() {
   const notesMode = useGame((s) => s.notesMode);
   const won = useGame((s) => s.won);
+  const lost = useGame((s) => s.lost);
   const selectedCell = useGame((s) => s.selectedCell);
   const notes = useGame((s) => s.notes);
 
@@ -128,7 +129,8 @@ export function App() {
         />
       )}
       {won && <GameSheet variant="win" onClose={() => {}} />}
-      {!won && newGameOpen && <GameSheet variant="new" onClose={() => setNewGameOpen(false)} />}
+      {lost && <GameSheet variant="lost" onClose={() => {}} />}
+      {!won && !lost && newGameOpen && <GameSheet variant="new" onClose={() => setNewGameOpen(false)} />}
       {helpOpen && <HelpSheet onClose={closeHelp} />}
     </div>
   );

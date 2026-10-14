@@ -51,6 +51,17 @@ export const highlightedCells = (mode: HighlightMode, i: number): Set<number> =>
   }
 };
 
+/** Digits whose nine cells are all correctly filled: greyed out of the tray. */
+export const completedDigits = (board: Board, solution: Board): Set<number> => {
+  const counts = new Array(10).fill(0);
+  board.forEach((v, k) => {
+    if (v !== null && v === solution[k]) counts[v]++;
+  });
+  const done = new Set<number>();
+  for (let d = 1; d <= 9; d++) if (counts[d] === 9) done.add(d);
+  return done;
+};
+
 /** Digits faded out of the tray: those already placed in the active unit. */
 export const usedDigits = (mode: HighlightMode, i: number | null, board: Board): Set<number> => {
   if (i === null) return new Set();

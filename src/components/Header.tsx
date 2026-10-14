@@ -1,4 +1,4 @@
-import { useGame } from "../store";
+import { MAX_MISTAKES, useGame } from "../store";
 
 const today = () => {
   const d = new Date();
@@ -23,6 +23,7 @@ interface HeaderProps {
 export function Header({ onDifficultyClick, onHelpClick }: HeaderProps) {
   const elapsed = useGame((s) => s.elapsed);
   const difficulty = useGame((s) => s.difficulty);
+  const mistakes = useGame((s) => s.mistakes);
 
   return (
     <header className="header">
@@ -41,6 +42,12 @@ export function Header({ onDifficultyClick, onHelpClick }: HeaderProps) {
         <button className="difficulty flip" onClick={onDifficultyClick} aria-label="Change difficulty">
           {difficulty}
         </button>
+        <span
+          className={`flip mistakes${mistakes > 0 ? " has-mistakes" : ""}`}
+          aria-label={`${mistakes} of ${MAX_MISTAKES} mistakes`}
+        >
+          <small>Mistakes</small> {mistakes}/{MAX_MISTAKES}
+        </span>
         <span className="flip timer" aria-label="Elapsed time">
           {formatTime(elapsed)}
         </span>

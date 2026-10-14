@@ -1,4 +1,4 @@
-# Regenerates public/type/title.svg and src/assets/{solved,new-game}.svg from the licensed fonts in Fonts/ (not committed).
+# Regenerates public/type/title.svg and src/assets/{solved,new-game,game-over}.svg from the licensed fonts in Fonts/ (not committed).
 # Usage: pip install fonttools uharfbuzz && python scripts/outline-type.py .
 
 import sys, json
@@ -51,6 +51,6 @@ g = outline(ANNABELLE, "G", 69.991, 0, 67.5, -4.8994)
 randoku = outline(INTEGRAL, "RANDOKU", 29.592, 59.328, 59.008)
 out["title"] = write("title.svg", [(*ariana, "#101820"), (*g, "#000"), (*randoku, "#101820")])
 # Sheet headings at 32px, baseline at y=0.
-for word, fname in [("SOLVED", "solved.svg"), ("NEW GAME", "new-game.svg")]:
+for word, fname in [("SOLVED", "solved.svg"), ("NEW GAME", "new-game.svg"), ("GAME OVER", "game-over.svg")]:
     out[fname] = write(fname, [(*outline(INTEGRAL, word, 32, 0, 0), "#101820")])
 print(json.dumps(out, indent=1))
