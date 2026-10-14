@@ -76,6 +76,7 @@ Sudoku where the nine symbols are Ariana Grande album covers instead of digits. 
 - Undo button (and Cmd/Ctrl+Z on desktop) reverts the last action, including auto-cleared notes.
 - Mistakes: check-on-entry default to flagging a cell whose value doesn't match `solution`. A wrong placement shakes once as it lands, with the red outline.
 - Mistake counter in the meta row just above the board (`n/7` with the ring icon; black at 0, pink `#dc658d` from the first mistake), with the difficulty centred and the timer on the right (Figma node 2408-1339). Every wrong placement counts; undo doesn't refund it. The 7th mistake locks the board and shows a Game over sheet whose Restart replays the same puzzle with placements, notes, undo history, mistakes and timer reset.
+- Completion wave: when a placement makes a row, column or box all correct, its covers rise, grow and settle one after another (column top to bottom, row left to right, box row by row). Several units completed at once all wave together; a shared cell moves once.
 - Win state when `board` matches `solution`.
 
 ## Build order

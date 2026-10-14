@@ -274,9 +274,11 @@ button:focus-visible {
 }
 
 .box {
+  --box-radius: calc(10 * var(--u));
+  --box-inner-radius: calc(var(--box-radius) - var(--box-border));
   aspect-ratio: 1;
   border: var(--box-border) solid var(--line);
-  border-radius: calc(10 * var(--u));
+  border-radius: var(--box-radius);
   overflow: hidden;
   display: grid;
   grid-template: repeat(3, 1fr) / repeat(3, 1fr);
@@ -291,6 +293,26 @@ button:focus-visible {
   /* The white lines between cells: each cell paints a white ring over the gap around it. */
   box-shadow: 0 0 0 var(--cell-line) var(--line);
   cursor: pointer;
+}
+
+/* Corner cells share the box's inner radius, so they stay rounded while a wave lifts the clip. */
+.box > .cell:nth-child(1) {
+  border-top-left-radius: var(--box-inner-radius);
+}
+.box > .cell:nth-child(3) {
+  border-top-right-radius: var(--box-inner-radius);
+}
+.box > .cell:nth-child(7) {
+  border-bottom-left-radius: var(--box-inner-radius);
+}
+.box > .cell:nth-child(9) {
+  border-bottom-right-radius: var(--box-inner-radius);
+}
+
+.cell.is-clue .cover,
+.cell.is-entry:not(.is-mistake) .cover,
+.cell::after {
+  border-radius: inherit;
 }
 
 .cell.is-highlighted {
@@ -368,6 +390,29 @@ button:focus-visible {
   40%,
   80% {
     transform: translateX(calc(3 * var(--u)));
+  }
+}
+
+/* Completion wave: each cover rises, grows and settles, offset along the row/column/box. */
+.box:has(.is-waving) {
+  overflow: visible;
+  position: relative;
+  z-index: 1;
+}
+
+.cell.is-waving {
+  z-index: 1;
+}
+
+.cell.is-waving .cover {
+  animation: wave 420ms ease-in-out var(--wave-delay) both;
+}
+
+@keyframes wave {
+  45% {
+    transform: translateY(calc(-6 * var(--u))) scale(1.15);
+    border-radius: calc(4 * var(--u));
+    box-shadow: 0 calc(4 * var(--u)) calc(10 * var(--u)) rgba(16, 24, 32, 0.25);
   }
 }
 

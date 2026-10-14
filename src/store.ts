@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { generate, solve, type Difficulty } from "sudoku-core";
-import { type Board, type HighlightMode, nextMode, peersOf, usedDigits } from "./sudoku";
+import { type Board, type HighlightMode, completionWave, nextMode, peersOf, usedDigits } from "./sudoku";
 
 export type { Difficulty };
 export type Notes = ReadonlyArray<ReadonlySet<number>>;
@@ -28,6 +28,8 @@ interface GameState {
   lost: boolean; // hit MAX_MISTAKES: board locked until restart
   /** The wrong placement to shake; `id` changes each time so repeats in one cell replay it. */
   shake: { cell: number; id: number } | null;
+  /** Completion wave: per-cell delays (ms); `id` changes each time so it replays. */
+  wave: { delays: ReadonlyMap<number, number>; id: number } | null;
 
   newGame: (difficulty: Difficulty) => void;
   restart: () => void;
@@ -55,6 +57,7 @@ const freshAttempt = (puzzle: Board) => ({
   mistakes: 0,
   lost: false,
   shake: null,
+  wave: null,
   notesMode: false,
 });
 
@@ -69,6 +72,9 @@ function createGame(difficulty: Difficulty) {
     ...freshAttempt(puzzle),
   };
 }
+
+const waveFrom = (delays: Map<number, number> | null, prev: GameState["wave"]): GameState["wave"] =>
+  delays ? { delays, id: (prev?.id ?? 0) + 1 } : prev;
 
 export const useGame = create<GameState>()((set, get) => ({
   ...createGame("medium"),
@@ -138,6 +144,8 @@ export const useGame = create<GameState>()((set, get) => ({
       mistakes,
       lost: mistakes >= MAX_MISTAKES,
       shake: wrong ? { cell: i, id: (get().shake?.id ?? 0) + 1 } : null,
+      // Placements that complete nothing leave a running wave alone.
+      wave: wrong ? get().wave : waveFrom(completionWave(i, nextBoard, solution), get().wave),
     });
   },
 
@@ -148,7 +156,7 @@ export const useGame = create<GameState>()((set, get) => ({
     if (board[i] !== null) {
       const nextBoard = [...board];
       nextBoard[i] = null;
-      set({ board: nextBoard, history: [...history, snapshot], shake: null });
+      set({ board: nextBoard, history: [...history, snapshot], shake: null, wave: null });
     } else if (notes[i].size > 0) {
       const nextNotes = [...notes];
       nextNotes[i] = new Set();
@@ -160,7 +168,7 @@ export const useGame = create<GameState>()((set, get) => ({
     const { history, won, lost } = get();
     if (won || lost || history.length === 0) return;
     const prev = history[history.length - 1];
-    set({ board: prev.board, notes: prev.notes, history: history.slice(0, -1), shake: null });
+    set({ board: prev.board, notes: prev.notes, history: history.slice(0, -1), shake: null, wave: null });
   },
 
   tick: () => {

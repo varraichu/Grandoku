@@ -11,6 +11,8 @@ interface CellProps {
   highlighted: boolean;
   /** Set on a just-made wrong placement; a new value replays the shake. */
   shakeId?: number;
+  /** Set while a completion wave runs through this cell; a new `id` replays it. */
+  wave?: { id: number; delay: number };
 }
 
 export const Cell = memo(function Cell({
@@ -22,6 +24,7 @@ export const Cell = memo(function Cell({
   selected,
   highlighted,
   shakeId,
+  wave,
 }: CellProps) {
   const className = [
     "cell",
@@ -30,6 +33,7 @@ export const Cell = memo(function Cell({
     value !== null && (clue ? "is-clue" : "is-entry"),
     mistake && "is-mistake",
     shakeId !== undefined && "is-shaking",
+    wave && "is-waving",
   ]
     .filter(Boolean)
     .join(" ");
@@ -40,9 +44,16 @@ export const Cell = memo(function Cell({
   }`;
 
   return (
-    <div className={className} data-index={index} role="gridcell" aria-selected={selected} aria-label={label}>
+    <div
+      className={className}
+      data-index={index}
+      role="gridcell"
+      aria-selected={selected}
+      aria-label={label}
+      style={wave ? ({ "--wave-delay": `${wave.delay}ms` } as React.CSSProperties) : undefined}
+    >
       {album ? (
-        <img key={shakeId} className="cover" src={album.cover} alt="" draggable={false} />
+        <img key={`${shakeId}:${wave?.id}`} className="cover" src={album.cover} alt="" draggable={false} />
       ) : notes.size > 0 ? (
         <div className="note-grid">
           {albums.map((a) => (

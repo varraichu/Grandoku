@@ -1,6 +1,6 @@
-import { useMemo, useRef, type PointerEvent } from "react";
+import { useEffect, useMemo, useRef, type PointerEvent } from "react";
 import { isMistake, useGame } from "../store";
-import { boxCells, highlightedCells } from "../sudoku";
+import { WAVE_RISE_MS, boxCells, highlightedCells } from "../sudoku";
 import { Cell } from "./Cell";
 
 const LONG_PRESS_MS = 450;
@@ -26,6 +26,19 @@ export function Board({ onHover, onPeek }: BoardProps) {
   const highlightMode = useGame((s) => s.highlightMode);
   const selectCell = useGame((s) => s.selectCell);
   const shake = useGame((s) => s.shake);
+  const wave = useGame((s) => s.wave);
+
+  // Drop the wave once its last cover has landed, so waving cells stop sitting above the rest.
+  useEffect(() => {
+    if (!wave) return;
+    const t = window.setTimeout(
+      () => {
+        if (useGame.getState().wave?.id === wave.id) useGame.setState({ wave: null });
+      },
+      Math.max(...wave.delays.values()) + WAVE_RISE_MS,
+    );
+    return () => window.clearTimeout(t);
+  }, [wave]);
 
   const highlighted = useMemo(
     () => (selectedCell === null ? new Set<number>() : highlightedCells(highlightMode, selectedCell)),
@@ -109,6 +122,7 @@ export function Board({ onHover, onPeek }: BoardProps) {
               selected={selectedCell === i}
               highlighted={highlighted.has(i)}
               shakeId={shake?.cell === i ? shake.id : undefined}
+              wave={wave?.delays.has(i) ? { id: wave.id, delay: wave.delays.get(i)! } : undefined}
             />
           ))}
         </div>

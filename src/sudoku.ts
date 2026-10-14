@@ -51,6 +51,24 @@ export const highlightedCells = (mode: HighlightMode, i: number): Set<number> =>
   }
 };
 
+const WAVE_STEP_MS = 60;
+export const WAVE_RISE_MS = 420; // one cover's rise-and-fall; keep in sync with .cell.is-waving
+
+/**
+ * Cascade delays (ms) for every unit that placing at `i` just completed correctly:
+ * columns run top to bottom, rows left to right, boxes row by row. A cell crossed by
+ * two waves takes the earlier delay so it only moves once. Null when nothing completed.
+ */
+export const completionWave = (i: number, board: Board, solution: Board): Map<number, number> | null => {
+  const units = [colCells(colOf(i)), rowCells(rowOf(i)), boxCells(boxOf(i))];
+  const delays = new Map<number, number>();
+  for (const cells of units) {
+    if (!cells.every((c) => board[c] !== null && board[c] === solution[c])) continue;
+    cells.forEach((c, k) => delays.set(c, Math.min(delays.get(c) ?? Infinity, k * WAVE_STEP_MS)));
+  }
+  return delays.size > 0 ? delays : null;
+};
+
 /** Digits whose nine cells are all correctly filled: greyed out of the tray. */
 export const completedDigits = (board: Board, solution: Board): Set<number> => {
   const counts = new Array(10).fill(0);
