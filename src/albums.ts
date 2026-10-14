@@ -21,3 +21,13 @@ export const albums: Album[] = [
 ];
 
 export const albumFor = (digit: number): Album => albums[digit - 1];
+
+// Decode every cover once at startup and keep the images referenced, so a cover appearing
+// for the first time on a phone is already decoded instead of flashing in.
+const decodedCovers: HTMLImageElement[] = [];
+for (const a of albums) {
+  const img = new Image();
+  img.src = a.cover;
+  img.decode().catch(() => {});
+  decodedCovers.push(img);
+}

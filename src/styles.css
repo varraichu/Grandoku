@@ -405,30 +405,15 @@ button:focus-visible {
 }
 
 .cell.is-waving .cover {
-  animation: wave 650ms var(--wave-delay) both;
+  /* Sine ease in and out of the crest: a smooth swell with no overshoot. */
+  animation: wave 750ms cubic-bezier(0.37, 0, 0.63, 1) var(--wave-delay) both;
 }
 
-/* Pop up, drop past rest with a slight squash, spring back a touch, settle. */
 @keyframes wave {
-  0% {
-    animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1);
-  }
-  35% {
-    transform: translateY(calc(-8 * var(--u))) scale(1.18);
+  50% {
+    transform: translateY(calc(-6 * var(--u))) scale(1.12);
     border-radius: calc(4 * var(--u));
-    box-shadow: 0 calc(5 * var(--u)) calc(12 * var(--u)) rgba(16, 24, 32, 0.25);
-    animation-timing-function: cubic-bezier(0.5, 0, 0.8, 0.4);
-  }
-  62% {
-    transform: translateY(calc(1 * var(--u))) scale(0.97);
-    animation-timing-function: cubic-bezier(0.2, 0.6, 0.4, 1);
-  }
-  80% {
-    transform: translateY(calc(-2 * var(--u))) scale(1.02);
-    animation-timing-function: ease-in-out;
-  }
-  100% {
-    transform: none;
+    box-shadow: 0 calc(4 * var(--u)) calc(10 * var(--u)) rgba(16, 24, 32, 0.2);
   }
 }
 
@@ -544,10 +529,14 @@ button:focus-visible {
   justify-content: space-between;
 }
 
-/* Unavailable covers are washed out with an opaque layer rather than made translucent,
-   so the tattoos behind the screen never show through. --wash is the strength (0 = none). */
+/* Unavailable covers are greyed and washed out by overlay layers: never made translucent
+   (the tattoos behind the screen would show through) and never filtered (phones redraw a
+   filtered image whenever the filter toggles, so covers flicker as if reloading).
+   --grey (0/1) turns on the greyscale layer; --wash is the wash strength (0 = none). */
 .tray-slot {
+  --grey: 0;
   --wash: 0;
+  --block: var(--album);
   position: relative;
   width: var(--slot);
   height: var(--slot);
@@ -564,9 +553,19 @@ button:focus-visible {
   width: 100%;
   height: 100%;
   border-radius: calc(4 * var(--u));
-  background: color-mix(in srgb, var(--album), var(--wash-colour) calc(var(--wash) * 100%));
+  background: color-mix(in srgb, var(--block), var(--wash-colour) calc(var(--wash) * 100%));
   z-index: -1;
-  transition: filter 200ms ease;
+}
+
+/* Greyscale: a neutral layer blended in "saturation" mode strips the cover's colour. */
+.tray-grey {
+  position: absolute;
+  inset: 0;
+  border-radius: calc(4 * var(--u));
+  background: #808080;
+  mix-blend-mode: saturation;
+  opacity: var(--grey);
+  pointer-events: none;
 }
 
 /* The wash over the cover itself (the cover is opaque, so this hides nothing behind it). */
@@ -589,7 +588,6 @@ button:focus-visible {
   border: 1px solid #fff;
   border-radius: calc(4 * var(--u));
   pointer-events: none;
-  transition: filter 200ms ease;
 }
 
 .tray-slot:active:not(:disabled) {
@@ -601,21 +599,26 @@ button:focus-visible {
   cursor: default;
 }
 
-.tray-slot.is-faded img,
-.tray-slot.is-faded::before,
-.tray-slot.is-done img,
-.tray-slot.is-done::before {
-  filter: grayscale(1);
-}
-
-/* Used in the active unit: lightly washed. */
+/* Used in the active unit: greyscale, lightly washed. */
 .tray-slot.is-faded {
+  --grey: 1;
   --wash: 0.55;
+  --block: oklch(from var(--album) l 0 h);
 }
 
-/* All nine placed correctly: washed out further, greyed out for good. */
+/* All nine placed correctly: greyscale, washed out further, greyed out for good. */
 .tray-slot.is-done {
+  --grey: 1;
   --wash: 0.75;
+  --block: oklch(from var(--album) l 0 h);
+}
+
+/* Browsers without relative colours keep the album colour under the wash. */
+@supports not (color: oklch(from red l c h)) {
+  .tray-slot.is-faded,
+  .tray-slot.is-done {
+    --block: var(--album);
+  }
 }
 
 /* ---------- Note peek ---------- */

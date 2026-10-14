@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useLayoutEffect, useRef } from "react";
 import { albumFor, albums } from "../albums";
 
 interface CellProps {
@@ -26,6 +26,17 @@ export const Cell = memo(function Cell({
   shakeId,
   wave,
 }: CellProps) {
+  const coverRef = useRef<HTMLImageElement>(null);
+
+  // Replay the shake/wave on the same <img>. Remounting it instead (e.g. via `key`) makes
+  // phone browsers paint the cover blank for a frame, which looks like it reloading.
+  useLayoutEffect(() => {
+    coverRef.current?.getAnimations().forEach((a) => {
+      a.cancel();
+      a.play();
+    });
+  }, [shakeId, wave?.id]);
+
   const className = [
     "cell",
     highlighted && "is-highlighted",
@@ -53,7 +64,7 @@ export const Cell = memo(function Cell({
       style={wave ? ({ "--wave-delay": `${wave.delay}ms` } as React.CSSProperties) : undefined}
     >
       {album ? (
-        <img key={`${shakeId}:${wave?.id}`} className="cover" src={album.cover} alt="" draggable={false} />
+        <img ref={coverRef} className="cover" src={album.cover} alt="" draggable={false} />
       ) : notes.size > 0 ? (
         <div className="note-grid">
           {albums.map((a) => (

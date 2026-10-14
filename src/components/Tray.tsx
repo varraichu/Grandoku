@@ -28,6 +28,7 @@ export function Tray() {
             aria-label={complete ? `${a.name} (all placed)` : a.name}
           >
             <img src={a.cover} alt="" draggable={false} />
+            <span className="tray-grey" aria-hidden />
           </button>
         );
       })}

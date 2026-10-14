@@ -51,20 +51,31 @@ export const highlightedCells = (mode: HighlightMode, i: number): Set<number> =>
   }
 };
 
-const WAVE_STEP_MS = 90;
-export const WAVE_RISE_MS = 650; // one cover's rise-and-fall; keep in sync with .cell.is-waving
+// Each cover's swell lasts much longer than the gap to the next, so several move at once
+// and the line reads as one flowing wave rather than covers hopping in turn.
+const WAVE_STEP_MS = 70; // along a row or column
+const WAVE_BOX_ROW_MS = 200; // box: between its rows
+const WAVE_BOX_COL_MS = 60; // box: across a row
+export const WAVE_RISE_MS = 750; // one cover's swell; keep in sync with .cell.is-waving
 
 /**
  * Cascade delays (ms) for every unit that placing at `i` just completed correctly:
- * columns run top to bottom, rows left to right, boxes row by row. A cell crossed by
- * two waves takes the earlier delay so it only moves once. Null when nothing completed.
+ * columns run top to bottom, rows left to right, boxes row by row (each row sweeping
+ * left to right). A cell crossed by two waves takes the earlier delay so it only moves
+ * once. Null when nothing completed.
  */
 export const completionWave = (i: number, board: Board, solution: Board): Map<number, number> | null => {
-  const units = [colCells(colOf(i)), rowCells(rowOf(i)), boxCells(boxOf(i))];
+  const lineDelay = (k: number) => k * WAVE_STEP_MS;
+  const boxDelay = (k: number) => Math.floor(k / 3) * WAVE_BOX_ROW_MS + (k % 3) * WAVE_BOX_COL_MS;
+  const units: [number[], (k: number) => number][] = [
+    [colCells(colOf(i)), lineDelay],
+    [rowCells(rowOf(i)), lineDelay],
+    [boxCells(boxOf(i)), boxDelay],
+  ];
   const delays = new Map<number, number>();
-  for (const cells of units) {
+  for (const [cells, delayAt] of units) {
     if (!cells.every((c) => board[c] !== null && board[c] === solution[c])) continue;
-    cells.forEach((c, k) => delays.set(c, Math.min(delays.get(c) ?? Infinity, k * WAVE_STEP_MS)));
+    cells.forEach((c, k) => delays.set(c, Math.min(delays.get(c) ?? Infinity, delayAt(k))));
   }
   return delays.size > 0 ? delays : null;
 };
