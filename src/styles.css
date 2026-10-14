@@ -44,8 +44,9 @@ button:focus-visible {
   outline-offset: calc(2 * var(--u));
 }
 
+/* Cells are see-through so the background tattoos show behind empty cells. */
 .app {
-  --cell-bg: var(--bg);
+  --cell-bg: transparent;
   min-height: 100dvh;
   background: var(--bg);
   transition: background-color 400ms ease;
@@ -58,7 +59,6 @@ button:focus-visible {
 }
 
 .app.notes-mode {
-  --cell-bg: var(--bg-notes);
   background: var(--bg-notes);
 }
 
@@ -73,6 +73,33 @@ button:focus-visible {
   justify-content: space-evenly;
   padding: max(calc(8 * var(--u)), env(safe-area-inset-top)) calc(6 * var(--u))
     max(calc(8 * var(--u)), env(safe-area-inset-bottom));
+}
+
+/* ---------- Background tattoos ---------- */
+
+.tattoos {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.screen {
+  z-index: 1;
+}
+
+.tattoo {
+  position: absolute;
+  width: calc(var(--size) * var(--u));
+  height: calc(var(--size) * var(--u));
+  object-fit: contain;
+  opacity: 0.2;
+  transform: translate(-50%, -50%) rotate(var(--rotate));
+  transition: transform var(--flip);
+}
+
+.notes-mode .tattoo {
+  transform: translate(-50%, -50%) rotate(calc(var(--rotate) + 180deg));
 }
 
 /* ---------- Header ---------- */
@@ -214,7 +241,6 @@ button:focus-visible {
   display: grid;
   grid-template: repeat(3, 1fr) / repeat(3, 1fr);
   gap: var(--cell-line);
-  background: var(--line);
 }
 
 .cell {
@@ -222,7 +248,8 @@ button:focus-visible {
   min-width: 0;
   min-height: 0;
   background: var(--cell-bg);
-  transition: background-color 400ms ease;
+  /* The white lines between cells: each cell paints a white ring over the gap around it. */
+  box-shadow: 0 0 0 var(--cell-line) var(--line);
   cursor: pointer;
 }
 

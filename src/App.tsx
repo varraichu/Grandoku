@@ -7,6 +7,7 @@ import { Tray } from "./components/Tray";
 import { NotePeek } from "./components/NotePeek";
 import { GameSheet } from "./components/GameSheet";
 import { HelpSheet } from "./components/HelpSheet";
+import { Tattoos } from "./components/Tattoos";
 
 const HELP_SEEN_KEY = "grandoku:help-seen";
 
@@ -109,6 +110,7 @@ export function App() {
 
   return (
     <div className={`app${notesMode ? " notes-mode" : ""}`}>
+      <Tattoos />
       <main className="screen">
         <Header onDifficultyClick={() => setNewGameOpen(true)} onHelpClick={() => setHelpOpen(true)} />
         <Board onHover={setHoveredCell} onPeek={setLongPressCell} />
