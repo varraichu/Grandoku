@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useGame } from "./store";
-import { Header } from "./components/Header";
+import { Header, Meta } from "./components/Header";
 import { Board } from "./components/Board";
 import { Controls } from "./components/Controls";
 import { Tray } from "./components/Tray";
@@ -113,8 +113,12 @@ export function App() {
     <div className={`app${notesMode ? " notes-mode" : ""}`}>
       <Tattoos />
       <main className="screen">
-        <Header onDifficultyClick={() => setNewGameOpen(true)} onHelpClick={() => setHelpOpen(true)} />
-        <Board onHover={setHoveredCell} onPeek={setLongPressCell} />
+        <Header onHelpClick={() => setHelpOpen(true)} />
+        {/* Grouped so the screen's even spacing keeps the meta row hugging the board. */}
+        <div className="play">
+          <Meta onDifficultyClick={() => setNewGameOpen(true)} />
+          <Board onHover={setHoveredCell} onPeek={setLongPressCell} />
+        </div>
         <Controls />
         <Tray />
       </main>
