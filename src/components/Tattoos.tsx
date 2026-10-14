@@ -3,16 +3,16 @@ import { memo, useState } from "react";
 // Aspect ratios (width / height) of the tightly cropped images in public/tattoos.
 // `scale` is a per-tattoo visual tweak on top of the shared size.
 const TATTOOS = [
-  { name: "clouds", aspect: 1.311, scale: 0.9 },
+  { name: "clouds", aspect: 1.311, scale: 0.81 },
   { name: "h2gkmo", aspect: 0.228, scale: 1 },
-  { name: "heart", aspect: 1.037, scale: 0.9 },
+  { name: "heart", aspect: 1.037, scale: 0.81 },
   { name: "japanese", aspect: 0.84, scale: 1 },
   { name: "leaves", aspect: 1.05, scale: 1 },
-  { name: "moon", aspect: 0.983, scale: 1.1 },
-  { name: "saturn", aspect: 1.25, scale: 0.9 },
+  { name: "moon", aspect: 0.983, scale: 1.21 },
+  { name: "saturn", aspect: 1.25, scale: 0.81 },
   { name: "tears", aspect: 0.575, scale: 1 },
   { name: "toulouse", aspect: 3.429, scale: 1 },
-  { name: "umbrella", aspect: 0.853, scale: 0.9 },
+  { name: "umbrella", aspect: 0.853, scale: 0.81 },
 ];
 
 // Every tattoo gets the same visual weight: equal area (BASE²), with long shapes capped.
