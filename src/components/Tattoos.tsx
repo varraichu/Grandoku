@@ -1,23 +1,38 @@
 import { memo, useState } from "react";
 
+// Aspect ratios (width / height) of the tightly cropped images in public/tattoos.
 const TATTOOS = [
-  "clouds",
-  "h2gkmo",
-  "heart",
-  "japanese",
-  "leaves",
-  "moon",
-  "saturn",
-  "tears",
-  "toulouse",
-  "umbrella",
+  { name: "clouds", aspect: 1.311 },
+  { name: "h2gkmo", aspect: 0.228 },
+  { name: "heart", aspect: 1.037 },
+  { name: "japanese", aspect: 0.84 },
+  { name: "leaves", aspect: 1.05 },
+  { name: "moon", aspect: 0.983 },
+  { name: "saturn", aspect: 1.25 },
+  { name: "tears", aspect: 0.575 },
+  { name: "toulouse", aspect: 3.429 },
+  { name: "umbrella", aspect: 0.853 },
 ];
+
+// Every tattoo gets the same visual weight: equal area (BASE²), with long shapes capped.
+const BASE = 64; // design units (× --u)
+const MAX_SIDE = BASE * 1.7;
+
+const sizeFor = (aspect: number) => {
+  let w = BASE * Math.sqrt(aspect);
+  let h = BASE / Math.sqrt(aspect);
+  const scale = Math.min(1, MAX_SIDE / Math.max(w, h));
+  w *= scale;
+  h *= scale;
+  return { w, h };
+};
 
 interface Placement {
   name: string;
   x: number; // % of viewport width
   y: number; // % of viewport height
-  size: number; // design units (× --u)
+  w: number; // design units (× --u)
+  h: number;
   rotate: number; // degrees
 }
 
@@ -31,14 +46,14 @@ function scatter(): Placement[] {
   const landscape = window.innerWidth > window.innerHeight;
   const [cols, rows] = landscape ? [5, 2] : [2, 5];
   const names = [...TATTOOS].sort(() => Math.random() - 0.5);
-  return names.map((name, k) => {
+  return names.map(({ name, aspect }, k) => {
     const col = k % cols;
     const row = Math.floor(k / cols);
     return {
       name,
       x: ((col + rand(0.15, 0.85)) / cols) * 100,
       y: ((row + rand(0.15, 0.85)) / rows) * 100,
-      size: rand(55, 95),
+      ...sizeFor(aspect),
       rotate: rand(-180, 180),
     };
   });
@@ -60,7 +75,8 @@ export const Tattoos = memo(function Tattoos() {
             {
               left: `${p.x}%`,
               top: `${p.y}%`,
-              "--size": p.size,
+              "--w": p.w,
+              "--h": p.h,
               "--rotate": `${p.rotate}deg`,
             } as React.CSSProperties
           }

@@ -90,9 +90,8 @@ button:focus-visible {
 
 .tattoo {
   position: absolute;
-  width: calc(var(--size) * var(--u));
-  height: calc(var(--size) * var(--u));
-  object-fit: contain;
+  width: calc(var(--w) * var(--u));
+  height: calc(var(--h) * var(--u));
   opacity: 0.2;
   transform: translate(-50%, -50%) rotate(var(--rotate));
   transition: transform var(--flip);
