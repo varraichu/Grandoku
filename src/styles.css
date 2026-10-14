@@ -9,8 +9,10 @@
   --ink-title: #101820;
   --line: #fff;
   --accent: #538393;
-  --hl: rgba(83, 141, 147, 0.2);
-  --hl-selected: rgba(83, 141, 147, 0.6);
+  --hl: rgba(101, 202, 220, 0.15); /* #65cadc */
+  --hl-selected: rgba(101, 202, 220, 0.6);
+  --hl-hover: rgba(101, 202, 220, 0.08);
+  --note-border: #282828;
   --mistake: #c43d3d;
   --mistake-count: #dc658d;
   --wash-colour: var(--bg);
@@ -293,6 +295,26 @@ button:focus-visible {
   /* The white lines between cells: each cell paints a white ring over the gap around it. */
   box-shadow: 0 0 0 var(--cell-line) var(--line);
   cursor: pointer;
+  /* Own stacking context: the layers below are ordered within the cell only. */
+  isolation: isolate;
+}
+
+/* Layers, bottom to top: cover → selection tint (::after) → notes and the mistake ring → mistake dot. */
+.cell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--tint, transparent);
+  pointer-events: none;
+}
+
+.cell.is-highlighted {
+  --tint: var(--hl);
+}
+
+.cell.is-selected {
+  --tint: var(--hl-selected);
 }
 
 /* Corner cells share the box's inner radius, so they stay rounded while a wave lifts the clip. */
@@ -315,14 +337,6 @@ button:focus-visible {
   border-radius: inherit;
 }
 
-.cell.is-highlighted {
-  background: linear-gradient(var(--hl), var(--hl)), var(--cell-bg);
-}
-
-.cell.is-selected {
-  background: linear-gradient(var(--hl-selected), var(--hl-selected)), var(--cell-bg);
-}
-
 .cover {
   position: absolute;
   inset: 0;
@@ -340,28 +354,14 @@ button:focus-visible {
   border-radius: calc(4 * var(--u));
 }
 
-.cell.is-clue::after,
-.cell.is-entry::after {
-  content: "";
+/* Red ring around a wrong cover, drawn above the tint so it stays clear. */
+.mistake-ring {
   position: absolute;
-  inset: 0;
+  inset: calc(3 * var(--u));
+  z-index: 2;
+  border-radius: calc(4 * var(--u));
+  box-shadow: inset 0 0 0 calc(2 * var(--u)) var(--mistake);
   pointer-events: none;
-}
-
-.cell.is-highlighted.is-clue::after,
-.cell.is-highlighted.is-entry::after {
-  background: var(--hl);
-}
-
-.cell.is-selected.is-clue::after,
-.cell.is-selected.is-entry::after {
-  background: rgba(83, 141, 147, 0.25);
-  box-shadow: inset 0 0 0 calc(3 * var(--u)) var(--accent);
-}
-
-.cell.is-mistake .cover {
-  outline: calc(2 * var(--u)) solid var(--mistake);
-  outline-offset: calc(-2 * var(--u));
 }
 
 .cell.is-mistake::before {
@@ -374,11 +374,12 @@ button:focus-visible {
   border-radius: 50%;
   background: var(--mistake);
   border: calc(1.5 * var(--u)) solid #fff;
-  z-index: 1;
+  z-index: 3;
 }
 
 /* A wrong placement shakes once as it lands. */
-.cell.is-shaking .cover {
+.cell.is-shaking .cover,
+.cell.is-shaking .mistake-ring {
   animation: shake 400ms ease-in-out;
 }
 
@@ -409,6 +410,18 @@ button:focus-visible {
   animation: wave 750ms cubic-bezier(0.37, 0, 0.63, 1) var(--wave-delay) both;
 }
 
+/* The tint rides the wave with its cover, so a lifted cover stays evenly tinted. */
+.cell.is-waving::after {
+  animation: wave-tint 750ms cubic-bezier(0.37, 0, 0.63, 1) var(--wave-delay) both;
+}
+
+@keyframes wave-tint {
+  50% {
+    transform: translateY(calc(-6 * var(--u))) scale(1.12);
+    border-radius: calc(4 * var(--u));
+  }
+}
+
 @keyframes wave {
   50% {
     transform: translateY(calc(-6 * var(--u))) scale(1.12);
@@ -427,7 +440,13 @@ button:focus-visible {
   display: grid;
   grid-template: repeat(3, calc(7 * var(--u))) / repeat(3, calc(7 * var(--u)));
   gap: calc(5 * var(--u));
+  z-index: 2;
   pointer-events: none;
+}
+
+.note-grid .is-on {
+  border: max(1px, calc(0.75 * var(--u))) solid var(--note-border);
+  border-radius: calc(1.5 * var(--u));
 }
 
 /* ---------- Controls ---------- */
@@ -946,7 +965,7 @@ button:focus-visible {
   }
 
   .cell:hover:not(.is-selected):not(.is-highlighted) {
-    background: linear-gradient(rgba(83, 141, 147, 0.1), rgba(83, 141, 147, 0.1)), var(--cell-bg);
+    --tint: var(--hl-hover);
   }
 
   .header {

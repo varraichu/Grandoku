@@ -26,12 +26,12 @@ export const Cell = memo(function Cell({
   shakeId,
   wave,
 }: CellProps) {
-  const coverRef = useRef<HTMLImageElement>(null);
+  const cellRef = useRef<HTMLDivElement>(null);
 
-  // Replay the shake/wave on the same <img>. Remounting it instead (e.g. via `key`) makes
-  // phone browsers paint the cover blank for a frame, which looks like it reloading.
+  // Replay the shake/wave on the same elements (cover, tint, mistake ring). Remounting the
+  // cover instead (e.g. via `key`) makes phones paint it blank for a frame, like a reload.
   useLayoutEffect(() => {
-    coverRef.current?.getAnimations().forEach((a) => {
+    cellRef.current?.getAnimations({ subtree: true }).forEach((a) => {
       a.cancel();
       a.play();
     });
@@ -56,6 +56,7 @@ export const Cell = memo(function Cell({
 
   return (
     <div
+      ref={cellRef}
       className={className}
       data-index={index}
       role="gridcell"
@@ -64,14 +65,19 @@ export const Cell = memo(function Cell({
       style={wave ? ({ "--wave-delay": `${wave.delay}ms` } as React.CSSProperties) : undefined}
     >
       {album ? (
-        <img ref={coverRef} className="cover" src={album.cover} alt="" draggable={false} />
+        <img className="cover" src={album.cover} alt="" draggable={false} />
       ) : notes.size > 0 ? (
         <div className="note-grid">
           {albums.map((a) => (
-            <span key={a.digit} style={notes.has(a.digit) ? { background: a.color } : undefined} />
+            <span
+              key={a.digit}
+              className={notes.has(a.digit) ? "is-on" : undefined}
+              style={notes.has(a.digit) ? { background: a.color } : undefined}
+            />
           ))}
         </div>
       ) : null}
+      {mistake && <span className="mistake-ring" aria-hidden />}
     </div>
   );
 });
