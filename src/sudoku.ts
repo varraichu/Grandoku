@@ -51,8 +51,8 @@ export const highlightedCells = (mode: HighlightMode, i: number): Set<number> =>
   }
 };
 
-const WAVE_STEP_MS = 60;
-export const WAVE_RISE_MS = 420; // one cover's rise-and-fall; keep in sync with .cell.is-waving
+const WAVE_STEP_MS = 90;
+export const WAVE_RISE_MS = 650; // one cover's rise-and-fall; keep in sync with .cell.is-waving
 
 /**
  * Cascade delays (ms) for every unit that placing at `i` just completed correctly:
