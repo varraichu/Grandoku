@@ -11,7 +11,7 @@ export const SETTLE_DEG = 4;
 /** Darkness (0-1) of a flap at 90°, to fake shading. */
 export const SHADE_MAX = 0.45;
 /** One quick flip while a cell rattles through in-between faces (like letters on a departures board). */
-export const CYCLE_FLIP_MS = 45;
+export const CYCLE_FLIP_MS = 90;
 /** Point in the bottom flap's fall where it first lands (before the settle bounce). */
 const LAND_AT = 0.72;
 
@@ -199,7 +199,6 @@ export function SplitFlap({
             const k = Math.floor(t / CYCLE_FLIP_MS);
             if (k >= via.length) return resolve(via[via.length - 1]);
             if (k !== step) {
-              if (step === -1) stage.classList.add("is-rattling");
               step = k;
               paint(via[k], k === 0 ? flip.from : via[k - 1]);
             }
@@ -223,7 +222,6 @@ export function SplitFlap({
           clearInline();
         }
         // The landing flip onto the final face, at normal speed with its settle.
-        stage.classList.remove("is-rattling");
         const lead = flip.via.length ? 0 : delay;
         paint(flip.to, from);
         landIn(lead + landsAfterMs(timing));
@@ -246,7 +244,6 @@ export function SplitFlap({
       cancelled = true;
       cancelAnimationFrame(raf);
       window.clearTimeout(landTimer);
-      stage.classList.remove("is-rattling");
       clearInline();
       anims.forEach((a) => a.cancel());
     };
