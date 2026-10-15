@@ -6,8 +6,9 @@ export interface Puzzle {
   solution: Board;
 }
 
-/** Levels offered in the picker. (sudoku-core's "master" practically never generates: removed.) */
-export const LEVELS: Difficulty[] = ["easy", "medium", "hard", "expert"];
+/** Levels offered in the picker. Expert is off for now (it can take up to a minute to generate);
+ *  sudoku-core's "master" practically never generates. */
+export const LEVELS: Difficulty[] = ["easy", "medium", "hard"];
 
 /**
  * A head start on every level: one background worker per level keeps a puzzle ready, so Start is

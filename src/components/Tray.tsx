@@ -10,6 +10,7 @@ export function Tray() {
   const highlightMode = useGame((s) => s.highlightMode);
   const hintsOn = useGame((s) => s.hintsOn);
   const input = useGame((s) => s.input);
+  const loading = useGame((s) => s.loading);
 
   // Fading used covers is the hint; with hints off every cover stays available.
   const used = useMemo(
@@ -22,7 +23,8 @@ export function Tray() {
     <div className="tray" role="toolbar" aria-label="Album covers">
       {albums.map((a) => {
         const complete = done.has(a.digit);
-        const faded = !complete && used.has(a.digit);
+        // While a puzzle is generating nothing can be placed: every cover greys out.
+        const faded = !complete && (!!loading || used.has(a.digit));
         return (
           <button
             key={a.digit}

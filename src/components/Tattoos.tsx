@@ -16,7 +16,7 @@ const TATTOOS = [
 ];
 
 // Every tattoo gets the same visual weight: equal area (BASE²), with long shapes capped.
-const BASE = 64; // design units (× --u)
+const BASE = 54; // design units (× --u)
 const MAX_SIDE = BASE * 1.7;
 
 const sizeFor = (aspect: number, tweak: number) => {
