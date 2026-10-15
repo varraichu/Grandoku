@@ -8,7 +8,7 @@ import { NotePeek } from "./components/NotePeek";
 import { GameSheet } from "./components/GameSheet";
 import { HelpSheet } from "./components/HelpSheet";
 import { Tattoos } from "./components/Tattoos";
-import { useWinSequence } from "./winSequence";
+import { useBoardIntro, useWinSequence } from "./winSequence";
 
 const HELP_SEEN_KEY = "grandoku:help-seen";
 
@@ -28,6 +28,7 @@ export function App() {
   const winPhase = useGame((s) => s.winPhase);
 
   useWinSequence();
+  useBoardIntro();
   const lost = useGame((s) => s.lost);
   const selectedCell = useGame((s) => s.selectedCell);
   const notes = useGame((s) => s.notes);
