@@ -3,7 +3,7 @@ import { type Intro, isMistake, useGame } from "../store";
 import type { Board as BoardValues } from "../sudoku";
 import { albumFor, albums } from "../albums";
 import { boxCells, boxOf, highlightedCells } from "../sudoku";
-import { cycleFaces, reportFlap, rippleDelay, shuffleDelay, type WinPhase } from "../winSequence";
+import { INTRO_TIMING, cycleFaces, reportFlap, rippleDelay, shuffleDelay, type WinPhase } from "../winSequence";
 import type { FlapFace } from "./SplitFlap";
 import { Cell } from "./Cell";
 
@@ -161,6 +161,7 @@ export function Board({ onHover, onPeek }: BoardProps) {
               wave={waveAt(i)}
               flap={flapFace(shuffle, intro, winPhase, i, board[i])}
               flapVia={!intro && winPhase === "reveal" ? cycleFaces(i) : undefined}
+              flapTiming={intro ? INTRO_TIMING : undefined}
               onFlapLand={!intro && winPhase === "reveal" ? () => reportFlap(i) : undefined}
               onFlapDone={!intro && winPhase === "back" ? () => reportFlap(i) : undefined}
               flapDelay={shuffle ? shuffleDelay(i) : rippleDelay(i)}

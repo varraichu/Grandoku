@@ -1,6 +1,6 @@
 import { memo, useLayoutEffect, useRef } from "react";
 import { albumFor, albums } from "../albums";
-import { SplitFlap, type FlapFace } from "./SplitFlap";
+import { SplitFlap, type FlapFace, type FlapTiming } from "./SplitFlap";
 
 interface CellProps {
   index: number;
@@ -19,6 +19,7 @@ interface CellProps {
   flapDelay?: number;
   /** Faces the flap rattles through before landing on `flap`. */
   flapVia?: FlapFace[];
+  flapTiming?: FlapTiming;
   onFlapLand?: () => void;
   onFlapDone?: () => void;
 }
@@ -36,6 +37,7 @@ export const Cell = memo(function Cell({
   flap,
   flapDelay,
   flapVia,
+  flapTiming,
   onFlapLand,
   onFlapDone,
 }: CellProps) {
@@ -78,7 +80,14 @@ export const Cell = memo(function Cell({
       style={wave ? ({ "--wave-delay": `${wave.delay}ms` } as React.CSSProperties) : undefined}
     >
       {flap ? (
-        <SplitFlap face={flap} delay={flapDelay} via={flapVia} onLand={onFlapLand} onDone={onFlapDone} />
+        <SplitFlap
+          face={flap}
+          delay={flapDelay}
+          via={flapVia}
+          timing={flapTiming}
+          onLand={onFlapLand}
+          onDone={onFlapDone}
+        />
       ) : album ? (
         <img className="cover" src={album.cover} alt="" draggable={false} />
       ) : notes.size > 0 ? (
