@@ -10,6 +10,14 @@ export const TOP_SHARE = 0.45;
 export const SETTLE_DEG = 4;
 /** Darkness (0-1) of a flap at 90°, to fake shading. */
 export const SHADE_MAX = 0.45;
+/** One quick flip while a cell rattles through in-between faces (like letters on a departures board). */
+export const CYCLE_FLIP_MS = 80;
+/** Point in the bottom flap's fall where it first lands (before the settle bounce). */
+const LAND_AT = 0.72;
+
+/** Time from a flip's start until the new face first lands (the settle bounce comes after). */
+export const landsAfterMs = (t: FlapTiming = DEFAULT_TIMING) =>
+  t.flipMs * TOP_SHARE + t.flipMs * (1 - TOP_SHARE) * (t.settleDeg ? LAND_AT : 1);
 
 export interface FlapTiming {
   flipMs: number;
@@ -37,6 +45,55 @@ const faceStyle = (f: FlapFace): React.CSSProperties =>
         backgroundPosition: f.slice ? `${f.slice.col * 50}% ${f.slice.row * 50}%` : "center",
       };
 
+const setFace = (el: HTMLElement, f: FlapFace) => {
+  el.style.backgroundImage = el.style.backgroundSize = el.style.backgroundPosition = "";
+  Object.assign(el.style, faceStyle(f));
+};
+
+/** One flip: the old top half falls (0 → -90°), then the new bottom half lands (90° → 0), with optional settle. */
+function flapAnimations(
+  topLeaf: HTMLElement,
+  bottomLeaf: HTMLElement,
+  { flipMs, settleDeg, shade, delay }: FlapTiming & { delay: number },
+): Animation[] {
+  const topMs = flipMs * TOP_SHARE;
+  const bottomMs = flipMs - topMs;
+  const fill = "both" as const;
+  return [
+    // Top flap: accelerates as it falls toward the viewer, darkening as it turns edge-on.
+    topLeaf.animate([{ transform: "rotateX(0deg)" }, { transform: "rotateX(-90deg)" }], {
+      fill,
+      duration: topMs,
+      delay,
+      easing: "cubic-bezier(0.55, 0, 1, 0.45)",
+    }),
+    topLeaf.querySelector(".flap-shade")!.animate([{ opacity: 0 }, { opacity: shade }], {
+      fill,
+      duration: topMs,
+      delay,
+      easing: "ease-in",
+    }),
+    // Bottom flap: lands from edge-on, bounces up a touch, settles.
+    bottomLeaf.animate(
+      [
+        { transform: "rotateX(90deg)", easing: "cubic-bezier(0.3, 0, 0.8, 0.4)" },
+        { transform: "rotateX(0deg)", offset: settleDeg ? LAND_AT : 1, easing: "ease-out" },
+        ...(settleDeg
+          ? [{ transform: `rotateX(${settleDeg}deg)`, offset: 0.86, easing: "ease-in" }, { transform: "rotateX(0deg)" }]
+          : []),
+      ],
+      { fill, duration: bottomMs, delay: delay + topMs },
+    ),
+    bottomLeaf
+      .querySelector(".flap-shade")!
+      .animate([{ opacity: shade }, { opacity: 0, offset: LAND_AT }, { opacity: 0 }], {
+        fill,
+        duration: bottomMs,
+        delay: delay + topMs,
+      }),
+  ];
+}
+
 const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function Half({ face, part, leaf }: { face: FlapFace; part: "top" | "bottom"; leaf?: boolean }) {
@@ -53,6 +110,8 @@ interface SplitFlapProps {
   face: FlapFace;
   /** Wait before this flip starts (ms), for rippling a whole board. */
   delay?: number;
+  /** Faces to rattle through quickly (CYCLE_FLIP_MS each) before landing on `face`. */
+  via?: FlapFace[];
   timing?: FlapTiming;
   /** Crossfade instead of flipping (defaults to the user's reduced-motion setting). */
   reducedMotion?: boolean;
@@ -64,80 +123,70 @@ interface SplitFlapProps {
  * down at the midline (0 → -90°) uncovering the new top half, then the new bottom half
  * falls from 90° to 0 over the old bottom half, with a small settle. Transforms only.
  */
-export function SplitFlap({ face, delay = 0, timing = DEFAULT_TIMING, reducedMotion, onDone }: SplitFlapProps) {
+export function SplitFlap({ face, delay = 0, via, timing = DEFAULT_TIMING, reducedMotion, onDone }: SplitFlapProps) {
   const [shown, setShown] = useState(face);
-  const [flip, setFlip] = useState<{ from: FlapFace; to: FlapFace } | null>(null);
+  const [flip, setFlip] = useState<{ from: FlapFace; to: FlapFace; via: FlapFace[] } | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
 
   // A new face arrives: flip from whatever is showing now.
   if (faceKey(face) !== faceKey(flip ? flip.to : shown)) {
-    setFlip({ from: flip ? flip.to : shown, to: face });
+    setFlip({ from: flip ? flip.to : shown, to: face, via: via ?? [] });
   }
 
   useLayoutEffect(() => {
     const stage = stageRef.current;
     if (!flip || !stage) return;
-    const { flipMs, settleDeg, shade } = timing;
     const fade = reducedMotion ?? prefersReducedMotion();
+    let anims: Animation[] = [];
+    let cancelled = false;
+
     const finish = () => {
       setShown(flip.to);
       setFlip(null);
       onDoneRef.current?.();
     };
 
-    let anims: Animation[];
     if (fade) {
       const top = stage.querySelector<HTMLElement>(".flap-fade")!;
-      anims = [top.animate([{ opacity: 0 }, { opacity: 1 }], { duration: flipMs, delay, fill: "both" })];
+      anims = [top.animate([{ opacity: 0 }, { opacity: 1 }], { duration: timing.flipMs, delay, fill: "both" })];
+      Promise.all(anims.map((a) => a.finished))
+        .then(() => !cancelled && finish())
+        .catch(() => {}); // cancelled by a newer flip
     } else {
-      const topMs = flipMs * TOP_SHARE;
-      const bottomMs = flipMs - topMs;
+      // [still top (new), still bottom (old), falling top (old), landing bottom (new)]
+      const faces = stage.querySelectorAll<HTMLElement>(".flap-face");
       const [topLeaf, bottomLeaf] = stage.querySelectorAll<HTMLElement>(".flap-leaf");
-      const ease = { fill: "both" as const };
-      anims = [
-        // Top flap: accelerates as it falls toward the viewer, darkening as it turns edge-on.
-        topLeaf.animate([{ transform: "rotateX(0deg)" }, { transform: "rotateX(-90deg)" }], {
-          ...ease,
-          duration: topMs,
-          delay,
-          easing: "cubic-bezier(0.55, 0, 1, 0.45)",
-        }),
-        topLeaf.querySelector(".flap-shade")!.animate([{ opacity: 0 }, { opacity: shade }], {
-          ...ease,
-          duration: topMs,
-          delay,
-          easing: "ease-in",
-        }),
-        // Bottom flap: lands from edge-on, bounces up a touch, settles.
-        bottomLeaf.animate(
-          [
-            { transform: "rotateX(90deg)", easing: "cubic-bezier(0.3, 0, 0.8, 0.4)" },
-            { transform: "rotateX(0deg)", offset: settleDeg ? 0.72 : 1, easing: "ease-out" },
-            ...(settleDeg
-              ? [
-                  { transform: `rotateX(${settleDeg}deg)`, offset: 0.86, easing: "ease-in" },
-                  { transform: "rotateX(0deg)" },
-                ]
-              : []),
-          ],
-          { ...ease, duration: bottomMs, delay: delay + topMs },
-        ),
-        bottomLeaf
-          .querySelector(".flap-shade")!
-          .animate([{ opacity: shade }, { opacity: 0, offset: 0.72 }, { opacity: 0 }], {
-            ...ease,
-            duration: bottomMs,
-            delay: delay + topMs,
-          }),
-      ];
+      const steps = [...flip.via, flip.to];
+
+      (async () => {
+        let from = flip.from;
+        for (let k = 0; k < steps.length; k++) {
+          const to = steps[k];
+          const landing = k === steps.length - 1;
+          // Repaint the four halves for this step in place (no re-render), then flip.
+          [to, from, from, to].forEach((f, n) => setFace(faces[n], f));
+          const prev = anims;
+          anims = flapAnimations(topLeaf, bottomLeaf, {
+            flipMs: landing ? timing.flipMs : CYCLE_FLIP_MS,
+            settleDeg: landing ? timing.settleDeg : 0,
+            shade: landing ? timing.shade : timing.shade * 0.6,
+            delay: k === 0 ? delay : 0,
+          });
+          prev.forEach((a) => a.cancel());
+          try {
+            await Promise.all(anims.map((a) => a.finished));
+          } catch {
+            return; // cancelled by a newer flip
+          }
+          if (cancelled) return;
+          from = to;
+        }
+        finish();
+      })();
     }
 
-    let cancelled = false;
-    Promise.all(anims.map((a) => a.finished))
-      .then(() => !cancelled && finish())
-      .catch(() => {}); // cancelled by a newer flip
     return () => {
       cancelled = true;
       anims.forEach((a) => a.cancel());
