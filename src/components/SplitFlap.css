@@ -1,4 +1,4 @@
-/* Split-flap cell. .flap is a size container so perspective can scale with the cell. */
+/* Flipping cell. .flap is a size container so perspective can scale with the cell. */
 .flap {
   position: relative;
   width: 100%;
@@ -6,10 +6,11 @@
   container-type: size;
 }
 
+/* A long perspective keeps the tile from swelling much past its cell as it tips toward the viewer. */
 .flap-stage {
   position: absolute;
   inset: 0;
-  perspective: 400cqh;
+  perspective: 500cqh;
 }
 
 .flap-full {
@@ -18,53 +19,29 @@
   background-repeat: no-repeat;
 }
 
-/* Each half clips a full-height copy of its face, so the two halves line up seamlessly. */
-.flap-half {
+/* The tile turns around its horizontal middle; its back is pre-turned so the new face lands upright. */
+.flap-card {
   position: absolute;
-  left: 0;
-  right: 0;
-  height: 50%;
+  inset: 0;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.flap-side {
+  position: absolute;
+  inset: 0;
   overflow: hidden;
   backface-visibility: hidden;
 }
 
-.flap-top {
-  top: 0;
-}
-
-.flap-bottom {
-  bottom: 0;
+.flap-back {
+  transform: rotateX(180deg);
 }
 
 .flap-face {
   position: absolute;
-  left: 0;
-  right: 0;
-  height: 200%;
+  inset: 0;
   background-repeat: no-repeat;
-}
-
-.flap-top .flap-face {
-  top: 0;
-}
-
-.flap-bottom .flap-face {
-  bottom: 0;
-}
-
-/* The moving flaps hinge at the midline and sit above the still halves. */
-.flap-leaf {
-  z-index: 1;
-  will-change: transform;
-}
-
-.flap-top.flap-leaf {
-  transform-origin: 50% 100%;
-}
-
-.flap-bottom.flap-leaf {
-  transform-origin: 50% 0;
-  transform: rotateX(90deg);
 }
 
 .flap-shade {
@@ -72,19 +49,5 @@
   inset: 0;
   background: #000;
   opacity: 0;
-  pointer-events: none;
-}
-
-/* The hairline gap between the two flaps, visible only mid-flip, like a real board. */
-.flap-stage.is-flipping::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 1px;
-  margin-top: -0.5px;
-  background: rgba(0, 0, 0, 0.35);
-  z-index: 2;
   pointer-events: none;
 }

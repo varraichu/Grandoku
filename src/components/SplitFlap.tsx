@@ -2,22 +2,19 @@ import { useLayoutEffect, useRef, useState } from "react";
 import "./SplitFlap.css";
 
 // ---- Tunable timings (defaults; the demo page can override them per flip) ----
-/** One whole flip: top flap falls, then bottom flap lands. */
+/** One whole flip: the tile turns over (0 → -180°), the new cover coming round on its back. */
 export const FLIP_MS = 550;
-/** Share of FLIP_MS spent on the top flap falling (the rest is the bottom flap landing). */
-export const TOP_SHARE = 0.45;
-/** How far (degrees) the bottom flap bounces back up after landing. 0 = no settle. */
-export const SETTLE_DEG = 4;
-/** Darkness (0-1) of a flap at 90°, to fake shading. */
+/** How far (degrees) the tile bounces back after landing. 0 = no settle. */
+export const SETTLE_DEG = 6;
+/** Darkness (0-1) of the tile when edge-on (90°), to fake shading. */
 export const SHADE_MAX = 0.45;
-/** One quick flip while a cell rattles through in-between faces (like letters on a departures board). */
+/** One flip while a cell runs through in-between covers before landing on its final one. */
 export const CYCLE_FLIP_MS = 240;
-/** Point in the bottom flap's fall where it first lands (before the settle bounce). */
-const LAND_AT = 0.72;
+/** Point in the flip where the tile first lands (before the settle bounce). */
+const LAND_AT = 0.78;
 
 /** Time from a flip's start until the new face first lands (the settle bounce comes after). */
-export const landsAfterMs = (t: FlapTiming = DEFAULT_TIMING) =>
-  t.flipMs * TOP_SHARE + t.flipMs * (1 - TOP_SHARE) * (t.settleDeg ? LAND_AT : 1);
+export const landsAfterMs = (t: FlapTiming = DEFAULT_TIMING) => t.flipMs * (t.settleDeg ? LAND_AT : 1);
 
 export interface FlapTiming {
   flipMs: number;
@@ -60,69 +57,66 @@ const cubicBezier = (x1: number, y1: number, x2: number, y2: number) => {
   };
 };
 
-// The flap curves, shared by the animated landing flip and the frame-driven rattle.
-const TOP_CURVE = "cubic-bezier(0.55, 0, 1, 0.45)";
-const BOTTOM_CURVE = "cubic-bezier(0.3, 0, 0.8, 0.4)";
-const TOP_EASE = cubicBezier(0.55, 0, 1, 0.45);
-const BOTTOM_EASE = cubicBezier(0.3, 0, 0.8, 0.4);
-const EASE_IN = cubicBezier(0.42, 0, 1, 1);
+// The turn's curve (starts gently, carries through, eases into place), shared by the animated
+// landing flip and the frame-driven in-between flips.
+const TURN_CURVE = "cubic-bezier(0.45, 0, 0.25, 1)";
+const TURN_EASE = cubicBezier(0.45, 0, 0.25, 1);
+
+/** Shading peaks when the tile is edge-on and fades as either side faces the viewer. */
+const shadeAt = (angleDeg: number, shade: number) => shade * Math.abs(Math.sin((angleDeg * Math.PI) / 180));
 
 const setFace = (el: HTMLElement, f: FlapFace) => {
   el.style.backgroundImage = el.style.backgroundSize = el.style.backgroundPosition = "";
   Object.assign(el.style, faceStyle(f));
 };
 
-/** One flip: the old top half falls (0 → -90°), then the new bottom half lands (90° → 0), with optional settle. */
-function flapAnimations(
-  topLeaf: HTMLElement,
-  bottomLeaf: HTMLElement,
+/** One turn of the tile (0 → -180°): tips toward the viewer, lands, optional settle bounce. */
+function turnAnimations(
+  card: HTMLElement,
+  shades: HTMLElement[],
   { flipMs, settleDeg, shade, delay }: FlapTiming & { delay: number },
 ): Animation[] {
-  const topMs = flipMs * TOP_SHARE;
-  const bottomMs = flipMs - topMs;
   const fill = "both" as const;
+  const landAt = settleDeg ? LAND_AT : 1;
   return [
-    // Top flap: accelerates as it falls toward the viewer, darkening as it turns edge-on.
-    topLeaf.animate([{ transform: "rotateX(0deg)" }, { transform: "rotateX(-90deg)" }], {
-      fill,
-      duration: topMs,
-      delay,
-      easing: TOP_CURVE,
-    }),
-    topLeaf.querySelector(".flap-shade")!.animate([{ opacity: 0 }, { opacity: shade }], {
-      fill,
-      duration: topMs,
-      delay,
-      easing: "ease-in",
-    }),
-    // Bottom flap: lands from edge-on, bounces up a touch, settles.
-    bottomLeaf.animate(
+    card.animate(
       [
-        { transform: "rotateX(90deg)", easing: BOTTOM_CURVE },
-        { transform: "rotateX(0deg)", offset: settleDeg ? LAND_AT : 1, easing: "ease-out" },
+        { transform: "rotateX(0deg)", easing: TURN_CURVE },
+        { transform: "rotateX(-180deg)", offset: landAt, easing: "ease-out" },
         ...(settleDeg
-          ? [{ transform: `rotateX(${settleDeg}deg)`, offset: 0.86, easing: "ease-in" }, { transform: "rotateX(0deg)" }]
+          ? [
+              {
+                transform: `rotateX(${-180 + settleDeg}deg)`,
+                offset: landAt + (1 - landAt) / 2,
+                easing: "ease-in-out",
+              },
+              { transform: "rotateX(-180deg)" },
+            ]
           : []),
       ],
-      { fill, duration: bottomMs, delay: delay + topMs },
+      { fill, duration: flipMs, delay },
     ),
-    bottomLeaf
-      .querySelector(".flap-shade")!
-      .animate([{ opacity: shade }, { opacity: 0, offset: LAND_AT }, { opacity: 0 }], {
-        fill,
-        duration: bottomMs,
-        delay: delay + topMs,
-      }),
+    ...shades.map((sh) =>
+      sh.animate(
+        [{ opacity: 0 }, { opacity: shade, offset: landAt / 2 }, { opacity: 0, offset: landAt }, { opacity: 0 }],
+        {
+          fill,
+          duration: flipMs,
+          delay,
+          easing: "ease-in-out",
+        },
+      ),
+    ),
   ];
 }
 
 const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-function Half({ face, part, leaf }: { face: FlapFace; part: "top" | "bottom"; leaf?: boolean }) {
+function Side({ face, side }: { face: FlapFace; side: "front" | "back" }) {
   return (
-    <div className={`flap-half flap-${part}${leaf ? " flap-leaf" : ""}`}>
+    <div className={`flap-side flap-${side}`}>
       <div className="flap-face" style={faceStyle(face)} />
-      {leaf && <div className="flap-shade" />}
+      <div className="flap-shade" />
     </div>
   );
 }
@@ -132,7 +126,7 @@ interface SplitFlapProps {
   face: FlapFace;
   /** Wait before this flip starts (ms), for rippling a whole board. */
   delay?: number;
-  /** Faces to rattle through quickly (CYCLE_FLIP_MS each) before landing on `face`. */
+  /** Faces to turn through (CYCLE_FLIP_MS each) before landing on `face`. */
   via?: FlapFace[];
   timing?: FlapTiming;
   /** Crossfade instead of flipping (defaults to the user's reduced-motion setting). */
@@ -144,9 +138,9 @@ interface SplitFlapProps {
 }
 
 /**
- * A split-flap (Solari board) cell. On a face change the top half of the old face hinges
- * down at the midline (0 → -90°) uncovering the new top half, then the new bottom half
- * falls from 90° to 0 over the old bottom half, with a small settle. Transforms only.
+ * A flipping cell. On a face change the whole tile turns over around its horizontal middle,
+ * tipping toward the viewer (0 → -180°): the old cover on its front, the new one coming round on
+ * its back, with a small settle. Never shows two half-covers at once. Transforms only.
  */
 export function SplitFlap({
   face,
@@ -197,17 +191,20 @@ export function SplitFlap({
         .then(() => !cancelled && finish())
         .catch(() => {}); // cancelled by a newer flip
     } else {
-      // [still top (new), still bottom (old), falling top (old), landing bottom (new)]
-      const faces = stage.querySelectorAll<HTMLElement>(".flap-face");
-      const leaves = stage.querySelectorAll<HTMLElement>(".flap-leaf");
-      const [topLeaf, bottomLeaf] = leaves;
-      const shades = [...leaves].map((l) => l.querySelector<HTMLElement>(".flap-shade")!);
-      const paint = (to: FlapFace, from: FlapFace) => [to, from, from, to].forEach((f, n) => setFace(faces[n], f));
+      // The tile: its front shows the face turning away, its back the face coming round.
+      const card = stage.querySelector<HTMLElement>(".flap-card")!;
+      const [front, back] = card.querySelectorAll<HTMLElement>(".flap-face");
+      const shades = [...card.querySelectorAll<HTMLElement>(".flap-shade")];
+      const paint = (to: FlapFace, from: FlapFace) => {
+        setFace(front, from);
+        setFace(back, to);
+      };
 
       /**
-       * Rattle through the in-between faces, driven per frame from elapsed time: the face and flap
-       * angles are computed for "now", so each quick flip lasts exactly CYCLE_FLIP_MS on screen
-       * (awaiting one animation before starting the next loses ~2 frames per flip).
+       * Turn through the in-between faces, driven per frame from elapsed time: the face and angle
+       * are computed for "now", so each turn lasts exactly CYCLE_FLIP_MS on screen (awaiting one
+       * animation before starting the next loses ~2 frames per turn). Each turn ends showing its new
+       * face upright on the back, which is then repainted onto the front for the next turn from 0°.
        */
       const rattle = () =>
         new Promise<FlapFace>((resolve) => {
@@ -224,14 +221,9 @@ export function SplitFlap({
               step = k;
               paint(via[k], k === 0 ? flip.from : via[k - 1]);
             }
-            // Same curves and shading as the landing flip (minus the settle), so every flip is smooth.
-            const p = (t - k * CYCLE_FLIP_MS) / CYCLE_FLIP_MS;
-            const top = Math.min(1, p / TOP_SHARE);
-            const bottom = Math.max(0, (p - TOP_SHARE) / (1 - TOP_SHARE));
-            topLeaf.style.transform = `rotateX(${-90 * TOP_EASE(top)}deg)`;
-            bottomLeaf.style.transform = `rotateX(${90 * (1 - BOTTOM_EASE(bottom))}deg)`;
-            shades[0].style.opacity = String(timing.shade * EASE_IN(top));
-            shades[1].style.opacity = String(timing.shade * (1 - bottom));
+            const angle = -180 * TURN_EASE((t - k * CYCLE_FLIP_MS) / CYCLE_FLIP_MS);
+            card.style.transform = `rotateX(${angle}deg)`;
+            shades.forEach((sh) => (sh.style.opacity = String(shadeAt(angle, timing.shade))));
             raf = requestAnimationFrame(frame);
           };
           raf = requestAnimationFrame(frame);
@@ -244,11 +236,11 @@ export function SplitFlap({
           if (cancelled) return;
           clearInline();
         }
-        // The landing flip onto the final face, at normal speed with its settle.
+        // The landing turn onto the final face, at normal speed with its settle.
         const lead = flip.via.length ? 0 : delay;
         paint(flip.to, from);
         landIn(lead + landsAfterMs(timing));
-        anims = flapAnimations(topLeaf, bottomLeaf, { ...timing, delay: lead });
+        anims = turnAnimations(card, shades, { ...timing, delay: lead });
         try {
           await Promise.all(anims.map((a) => a.finished));
         } catch {
@@ -258,7 +250,7 @@ export function SplitFlap({
       })();
 
       clearInline = () => {
-        [topLeaf, bottomLeaf].forEach((l) => (l.style.transform = ""));
+        card.style.transform = "";
         shades.forEach((sh) => (sh.style.opacity = ""));
       };
     }
@@ -277,7 +269,7 @@ export function SplitFlap({
 
   return (
     <div className="flap">
-      <div ref={stageRef} className={`flap-stage${flip && !fade ? " is-flipping" : ""}`}>
+      <div ref={stageRef} className="flap-stage">
         {!flip ? (
           <div className="flap-full" style={faceStyle(shown)} />
         ) : fade ? (
@@ -286,12 +278,10 @@ export function SplitFlap({
             <div className="flap-full flap-fade" style={faceStyle(flip.to)} />
           </>
         ) : (
-          <>
-            <Half face={flip.to} part="top" />
-            <Half face={flip.from} part="bottom" />
-            <Half face={flip.from} part="top" leaf />
-            <Half face={flip.to} part="bottom" leaf />
-          </>
+          <div className="flap-card">
+            <Side face={flip.from} side="front" />
+            <Side face={flip.to} side="back" />
+          </div>
         )}
       </div>
     </div>
