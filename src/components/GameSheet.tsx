@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 // Imported (not in public/) so Vite inlines these small SVGs and the heading shows instantly.
 import newGameArt from "../assets/new-game.svg";
 import solvedArt from "../assets/solved.svg";
 import gameOverArt from "../assets/game-over.svg";
 import { MAX_MISTAKES, MISTAKE_PENALTY_S, HINT_PENALTY_S, resultOf, useGame, type Difficulty } from "../store";
-import { saveResultImage } from "../shareImage";
+import { renderResultImage, saveResultImage } from "../shareImage";
 import { formatTime } from "./Header";
 import { LEVELS } from "../puzzles";
 
@@ -31,6 +31,8 @@ export function GameSheet({ variant, cancellable = true, onClose }: GameSheetPro
   const board = useGame((s) => s.board);
   const [difficulty, setDifficulty] = useState<Difficulty>(current);
   const [saving, setSaving] = useState<"idle" | "busy" | "failed">("idle");
+  // The result image, rendered once when the summary opens: shown as the preview, and saved as is.
+  const [image, setImage] = useState<{ blob: Blob; url: string } | null>(null);
 
   const result = resultOf({ elapsed, mistakes, hintedPlacements: hints, difficulty: current });
   const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -41,10 +43,29 @@ export function GameSheet({ variant, cancellable = true, onClose }: GameSheetPro
     hints > 0 && `+${hints * HINT_PENALTY_S}s hints`,
   ].filter(Boolean);
 
+  useEffect(() => {
+    if (variant !== "win") return;
+    let url = "";
+    let gone = false;
+    renderResultImage(board, result)
+      .then((blob) => {
+        if (gone) return;
+        url = URL.createObjectURL(blob);
+        setImage({ blob, url });
+      })
+      .catch(() => !gone && setSaving("failed"));
+    return () => {
+      gone = true;
+      if (url) URL.revokeObjectURL(url);
+    };
+    // Render once per win; the board and result don't change while the summary is open.
+  }, [variant]);
+
   const save = async () => {
+    if (!image) return;
     setSaving("busy");
     try {
-      await saveResultImage(board, result);
+      await saveResultImage(image.blob);
       setSaving("idle");
     } catch {
       setSaving("failed");
@@ -59,13 +80,18 @@ export function GameSheet({ variant, cancellable = true, onClose }: GameSheetPro
         </h2>
         {variant === "win" && (
           <div className="win-summary">
-            <p className="win-score-label">Score</p>
-            <p className="win-score">{formatTime(result.score)}</p>
+            {/* The preview carries the score and stats (they're drawn into the image). */}
+            <div className="win-preview">
+              {image && (
+                <img
+                  src={image.url}
+                  alt={`Score ${formatTime(result.score)}. ${current} · ${plural(mistakes, "mistake")} · ${plural(hints, "hint")}`}
+                  draggable={false}
+                />
+              )}
+            </div>
             <p className="win-breakdown">{breakdown.join(" · ")}</p>
-            <p className="win-details">
-              {current[0].toUpperCase() + current.slice(1)} · {plural(mistakes, "mistake")} · {plural(hints, "hint")}
-            </p>
-            <button className="win-save" onClick={save} disabled={saving === "busy"}>
+            <button className="win-save" onClick={save} disabled={!image || saving === "busy"}>
               {saving === "busy" ? "Saving…" : "Save image"}
             </button>
             {saving === "failed" && <p className="win-save-error">Couldn't save the image. Try again.</p>}

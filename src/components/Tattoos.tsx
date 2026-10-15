@@ -2,7 +2,7 @@ import { memo, useState } from "react";
 
 // Aspect ratios (width / height) of the tightly cropped images in public/tattoos.
 // `scale` is a per-tattoo visual tweak on top of the shared size.
-const TATTOOS = [
+export const TATTOOS = [
   { name: "clouds", aspect: 1.311, scale: 0.81 },
   { name: "h2gkmo", aspect: 0.228, scale: 1 },
   { name: "heart", aspect: 1.037, scale: 0.81 },
@@ -19,7 +19,8 @@ const TATTOOS = [
 const BASE = 54; // design units (× --u)
 const MAX_SIDE = BASE * 1.7;
 
-const sizeFor = (aspect: number, tweak: number) => {
+/** A tattoo's size in design units (× --u). Shared with the share image. */
+export const sizeFor = (aspect: number, tweak: number) => {
   let w = BASE * Math.sqrt(aspect);
   let h = BASE / Math.sqrt(aspect);
   const scale = Math.min(1, MAX_SIDE / Math.max(w, h)) * tweak;
