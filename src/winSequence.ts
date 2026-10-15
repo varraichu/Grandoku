@@ -11,11 +11,11 @@ export const START_BEAT_MS = 350;
 export const RIPPLE_MS = 85;
 /** Up to this much extra, fixed per cell: real flap boards are never perfectly in step. */
 export const JITTER_MS = 25;
-/** Covers the first box rattles through (like letters on a departures board) before landing on its
- *  slice of the reveal. Each later box (reading order) lands CYCLE_PER_BOX covers' time after the
- *  previous one, so the boxes complete one after another: 9, 11, 13 … 25. */
-export const CYCLE_BASE = 9;
-export const CYCLE_PER_BOX = 2;
+/** Covers the first box flips through (like letters on a departures board) before landing on its
+ *  slice of the reveal. Each later box (reading order) lands CYCLE_PER_BOX flips after the previous
+ *  one, so the boxes complete one after another. */
+export const CYCLE_BASE = 3;
+export const CYCLE_PER_BOX = 1;
 /** Pause between the last reveal cell landing and the top-left cell flipping back. 0 = the board
  *  turns straight back the moment the full image completes. */
 export const HOLD_MS = 0;

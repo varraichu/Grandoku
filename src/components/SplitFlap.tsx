@@ -11,7 +11,7 @@ export const SETTLE_DEG = 4;
 /** Darkness (0-1) of a flap at 90°, to fake shading. */
 export const SHADE_MAX = 0.45;
 /** One quick flip while a cell rattles through in-between faces (like letters on a departures board). */
-export const CYCLE_FLIP_MS = 90;
+export const CYCLE_FLIP_MS = 240;
 /** Point in the bottom flap's fall where it first lands (before the settle bounce). */
 const LAND_AT = 0.72;
 
@@ -45,6 +45,28 @@ const faceStyle = (f: FlapFace): React.CSSProperties =>
         backgroundPosition: f.slice ? `${f.slice.col * 50}% ${f.slice.row * 50}%` : "center",
       };
 
+/** CSS cubic-bezier timing function as a JS function of progress (0-1), for frame-driven flips. */
+const cubicBezier = (x1: number, y1: number, x2: number, y2: number) => {
+  const at = (a: number, b: number, t: number) => 3 * a * (1 - t) ** 2 * t + 3 * b * (1 - t) * t ** 2 + t ** 3;
+  return (x: number) => {
+    let lo = 0;
+    let hi = 1;
+    for (let n = 0; n < 20; n++) {
+      const mid = (lo + hi) / 2;
+      if (at(x1, x2, mid) < x) lo = mid;
+      else hi = mid;
+    }
+    return at(y1, y2, (lo + hi) / 2);
+  };
+};
+
+// The flap curves, shared by the animated landing flip and the frame-driven rattle.
+const TOP_CURVE = "cubic-bezier(0.55, 0, 1, 0.45)";
+const BOTTOM_CURVE = "cubic-bezier(0.3, 0, 0.8, 0.4)";
+const TOP_EASE = cubicBezier(0.55, 0, 1, 0.45);
+const BOTTOM_EASE = cubicBezier(0.3, 0, 0.8, 0.4);
+const EASE_IN = cubicBezier(0.42, 0, 1, 1);
+
 const setFace = (el: HTMLElement, f: FlapFace) => {
   el.style.backgroundImage = el.style.backgroundSize = el.style.backgroundPosition = "";
   Object.assign(el.style, faceStyle(f));
@@ -65,7 +87,7 @@ function flapAnimations(
       fill,
       duration: topMs,
       delay,
-      easing: "cubic-bezier(0.55, 0, 1, 0.45)",
+      easing: TOP_CURVE,
     }),
     topLeaf.querySelector(".flap-shade")!.animate([{ opacity: 0 }, { opacity: shade }], {
       fill,
@@ -76,7 +98,7 @@ function flapAnimations(
     // Bottom flap: lands from edge-on, bounces up a touch, settles.
     bottomLeaf.animate(
       [
-        { transform: "rotateX(90deg)", easing: "cubic-bezier(0.3, 0, 0.8, 0.4)" },
+        { transform: "rotateX(90deg)", easing: BOTTOM_CURVE },
         { transform: "rotateX(0deg)", offset: settleDeg ? LAND_AT : 1, easing: "ease-out" },
         ...(settleDeg
           ? [{ transform: `rotateX(${settleDeg}deg)`, offset: 0.86, easing: "ease-in" }, { transform: "rotateX(0deg)" }]
@@ -202,13 +224,14 @@ export function SplitFlap({
               step = k;
               paint(via[k], k === 0 ? flip.from : via[k - 1]);
             }
+            // Same curves and shading as the landing flip (minus the settle), so every flip is smooth.
             const p = (t - k * CYCLE_FLIP_MS) / CYCLE_FLIP_MS;
             const top = Math.min(1, p / TOP_SHARE);
             const bottom = Math.max(0, (p - TOP_SHARE) / (1 - TOP_SHARE));
-            topLeaf.style.transform = `rotateX(${-90 * top * top}deg)`; // accelerating fall
-            bottomLeaf.style.transform = `rotateX(${90 * (1 - bottom) * (1 - bottom)}deg)`;
-            shades[0].style.opacity = String(timing.shade * 0.6 * top);
-            shades[1].style.opacity = String(timing.shade * 0.6 * (1 - bottom));
+            topLeaf.style.transform = `rotateX(${-90 * TOP_EASE(top)}deg)`;
+            bottomLeaf.style.transform = `rotateX(${90 * (1 - BOTTOM_EASE(bottom))}deg)`;
+            shades[0].style.opacity = String(timing.shade * EASE_IN(top));
+            shades[1].style.opacity = String(timing.shade * (1 - bottom));
             raf = requestAnimationFrame(frame);
           };
           raf = requestAnimationFrame(frame);
