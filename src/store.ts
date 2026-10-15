@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { WinPhase } from "./winSequence";
 import { generate, solve, type Difficulty } from "sudoku-core";
 import { type Board, type HighlightMode, completionWave, nextMode, peersOf, usedDigits } from "./sudoku";
 
@@ -26,6 +27,8 @@ interface GameState {
   history: Snapshot[];
   elapsed: number; // seconds
   won: boolean;
+  /** Split-flap win sequence progress; null until the game is won. */
+  winPhase: WinPhase | null;
   mistakes: number; // wrong placements this attempt; undo doesn't refund them
   lost: boolean; // hit MAX_MISTAKES: board locked until restart
   /** The wrong placement to shake; `id` changes each time so repeats in one cell replay it. */
@@ -57,6 +60,7 @@ const freshAttempt = (puzzle: Board) => ({
   history: [],
   elapsed: 0,
   won: false,
+  winPhase: null,
   mistakes: 0,
   lost: false,
   shake: null,
@@ -155,16 +159,19 @@ export const useGame = create<GameState>()((set, get) => ({
 
     const wrong = digit !== solution[i];
     const mistakes = get().mistakes + (wrong ? 1 : 0);
+    const solved = nextBoard.every((v, k) => v === solution[k]);
     set({
       board: nextBoard,
       notes: nextNotes,
       history: [...history, snapshot],
-      won: nextBoard.every((v, k) => v === solution[k]),
+      won: solved,
       mistakes,
       lost: mistakes >= MAX_MISTAKES,
       shake: wrong ? { cell: i, id: (get().shake?.id ?? 0) + 1 } : null,
-      // Placements that complete nothing leave a running wave alone.
-      wave: wrong ? get().wave : waveFrom(completionWave(i, nextBoard, solution), get().wave),
+      // Placements that complete nothing leave a running wave alone. The winning move skips the
+      // wave (the split-flap sequence takes over) and clears the selection.
+      wave: solved ? null : wrong ? get().wave : waveFrom(completionWave(i, nextBoard, solution), get().wave),
+      ...(solved ? { selectedCell: null } : {}),
     });
   },
 
