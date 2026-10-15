@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { albums } from "./albums";
 import { CYCLE_FLIP_MS, FLIP_MS, landsAfterMs, type FlapFace } from "./components/SplitFlap";
 import { useGame } from "./store";
+import { boxCells, boxOf } from "./sudoku";
 
 // ---- Tunable timings ----
 /** Pause after the winning move before the board starts flipping. */
@@ -10,9 +11,11 @@ export const START_BEAT_MS = 350;
 export const RIPPLE_MS = 85;
 /** Up to this much extra, fixed per cell: real flap boards are never perfectly in step. */
 export const JITTER_MS = 25;
-/** Covers each cell rattles through (quickly, like letters on a departures board) before landing on
- *  its slice of the reveal. More than nine repeats the albums in a reshuffled order. */
-export const CYCLE_COUNT = 18;
+/** Covers the first box rattles through (like letters on a departures board) before landing on its
+ *  slice of the reveal. Each later box (reading order) lands CYCLE_PER_BOX covers' time after the
+ *  previous one, so the boxes complete one after another: 9, 11, 13 … 25. */
+export const CYCLE_BASE = 9;
+export const CYCLE_PER_BOX = 2;
 /** Pause between the last reveal cell landing and the top-left cell flipping back. 0 = the board
  *  turns straight back the moment the full image completes. */
 export const HOLD_MS = 0;
@@ -33,26 +36,51 @@ const jitter = (i: number) => ((i * 7919) % 97) / 96;
 
 export const rippleDelay = (i: number) => (Math.floor(i / 9) + (i % 9)) * RIPPLE_MS + Math.round(jitter(i) * JITTER_MS);
 
+/** When (from the reveal start) box 1 lands: its latest-starting cell rattles CYCLE_BASE covers. */
+const FIRST_BOX_LANDS_MS = Math.max(...boxCells(0).map(rippleDelay)) + CYCLE_BASE * CYCLE_FLIP_MS + landsAfterMs();
+
 /**
- * The covers a cell rattles through. Each pass over the nine albums uses a different stride
- * (coprime with 9, so every album appears once per pass) and each cell starts at a different
- * album, so repeats don't read as a loop and neighbours differ.
+ * How many covers cell i rattles through. Worked back from when its box should land (reading
+ * order, CYCLE_PER_BOX covers apart), so every cell in a box lands together, whatever its start delay.
+ */
+const cycleCount = (i: number) => {
+  const boxLands = FIRST_BOX_LANDS_MS + boxOf(i) * CYCLE_PER_BOX * CYCLE_FLIP_MS;
+  return Math.max(1, Math.round((boxLands - rippleDelay(i) - landsAfterMs()) / CYCLE_FLIP_MS));
+};
+
+/** Small seeded PRNG (mulberry32): the same cell gets the same sequence across re-renders. */
+const random = (seed: number) => () => {
+  seed = (seed + 0x6d2b79f5) | 0;
+  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+
+/** New per win, so every reveal rattles differently. */
+let winSeed = 1;
+
+/**
+ * The covers cell i rattles through: passes over all nine albums, each pass freshly shuffled per
+ * cell (never the same cover twice in a row), so neighbouring cells show different covers.
  */
 export const cycleFaces = (i: number): FlapFace[] => {
-  const strides = [1, 4, 2, 7, 5, 8];
+  const rand = random(winSeed * 131 + i);
   const order: number[] = [];
-  for (let k = 0; k < CYCLE_COUNT; k++) {
-    const pass = Math.floor(k / 9);
-    let a = (i * 4 + pass * 5 + (k % 9) * strides[pass % strides.length]) % 9;
-    if (a === order[order.length - 1]) a = (a + 1) % 9; // never the same cover twice in a row
-    order.push(a);
+  while (order.length < cycleCount(i)) {
+    const pass = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+    for (let k = 8; k > 0; k--) {
+      const j = Math.floor(rand() * (k + 1));
+      [pass[k], pass[j]] = [pass[j], pass[k]];
+    }
+    if (pass[0] === order[order.length - 1]) [pass[0], pass[1]] = [pass[1], pass[0]];
+    order.push(...pass);
   }
-  return order.map((a) => ({ src: albums[a].cover }));
+  return order.slice(0, cycleCount(i)).map((a) => ({ src: albums[a].cover }));
 };
 
 const LAST_CELL = 80;
 /** Rough sweep lengths, only used as safety timeouts (the phases advance when the cells report in). */
-const REVEAL_LANDS_MS = rippleDelay(LAST_CELL) + CYCLE_COUNT * (CYCLE_FLIP_MS + 20) + landsAfterMs();
+const REVEAL_LANDS_MS = rippleDelay(LAST_CELL) + cycleCount(LAST_CELL) * (CYCLE_FLIP_MS + 20) + landsAfterMs();
 const BACK_ENDS_MS = rippleDelay(LAST_CELL) + FLIP_MS;
 const SAFETY_MS = 1500;
 
@@ -112,6 +140,7 @@ export function useWinSequence() {
       await sleep(50); // let the flaps mount on the solved faces before they flip
       if (skipped()) return;
       // Turn back as the image's last cell lands, so the board never pauses.
+      winSeed = Math.floor(Math.random() * 1e9);
       const landed = allCellsReport(81, REVEAL_LANDS_MS + SAFETY_MS);
       setPhase("reveal");
       await landed;
