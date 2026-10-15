@@ -132,8 +132,13 @@ export const useGame = create<GameState>()((set, get) => {
     hintsOn: false,
 
     // New games and restarts flip the board from what's showing now into the fresh puzzle.
+    // The first game (from the empty load-up board) just appears.
     newGame: (difficulty) =>
-      set({ ...createGame(difficulty), started: true, intro: { from: get().board, phase: "armed" } }),
+      set({
+        ...createGame(difficulty),
+        started: true,
+        intro: get().started ? { from: get().board, phase: "armed" } : null,
+      }),
     restart: () => set({ ...freshAttempt(get().puzzle), intro: { from: get().board, phase: "armed" } }),
 
     selectCell: (i) => {
