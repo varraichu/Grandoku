@@ -8,7 +8,8 @@ import { NotePeek } from "./components/NotePeek";
 import { GameSheet } from "./components/GameSheet";
 import { HelpSheet } from "./components/HelpSheet";
 import { Tattoos } from "./components/Tattoos";
-import { useBoardIntro, useWinSequence } from "./winSequence";
+import { useBoardIntro, useShuffle, useWinSequence } from "./winSequence";
+import { prefetchPuzzles } from "./puzzles";
 
 const HELP_SEEN_KEY = "grandoku:help-seen";
 
@@ -29,6 +30,10 @@ export function App() {
 
   useWinSequence();
   useBoardIntro();
+  useShuffle();
+
+  // Head start: begin preparing a puzzle for every level while the player picks one.
+  useEffect(() => prefetchPuzzles(), []);
   const lost = useGame((s) => s.lost);
   const selectedCell = useGame((s) => s.selectedCell);
   const notes = useGame((s) => s.notes);
