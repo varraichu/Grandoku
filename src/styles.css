@@ -881,9 +881,11 @@ button.tile {
   height: 100%;
 }
 
-.win-breakdown {
-  margin-top: calc(10 * var(--u));
+/* Scoped under .win-summary so it outranks the `.win-summary p { margin: 0 }` reset. */
+.win-summary .win-breakdown {
+  margin-top: calc(18 * var(--u));
   font-size: calc(12 * var(--u));
+  font-weight: 500;
   color: rgba(16, 24, 32, 0.6);
   font-variant-numeric: tabular-nums;
 }
@@ -901,7 +903,7 @@ button.tile {
   opacity: 0.5;
 }
 
-.win-save-error {
+.win-summary .win-save-error {
   margin-top: calc(6 * var(--u));
   font-size: calc(12 * var(--u));
   color: var(--mistake);
