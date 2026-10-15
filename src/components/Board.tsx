@@ -1,8 +1,9 @@
 import { useMemo, useRef, type PointerEvent } from "react";
 import { type Intro, isMistake, useGame } from "../store";
+import type { Board as BoardValues } from "../sudoku";
 import { albumFor, albums } from "../albums";
 import { boxCells, boxOf, highlightedCells } from "../sudoku";
-import { cycleFaces, reportFlap, rippleDelay, type WinPhase } from "../winSequence";
+import { cycleFaces, reportFlap, rippleDelay, shuffleDelay, type WinPhase } from "../winSequence";
 import type { FlapFace } from "./SplitFlap";
 import { Cell } from "./Cell";
 
@@ -29,11 +30,13 @@ const coverFace = (value: number | null): FlapFace => (value === null ? BLANK : 
  * - Win: the cell's own cover, then (in the reveal) its ninth of the box's album cover. Box N shows album N.
  */
 const flapFace = (
+  shuffle: BoardValues | null,
   intro: Intro | null,
   phase: WinPhase | null,
   i: number,
   value: number | null,
 ): FlapFace | undefined => {
+  if (shuffle) return coverFace(shuffle[i]); // waiting for a puzzle: random covers, re-dealt each tick
   if (intro) {
     if (intro.from[i] === null && value === null) return undefined; // empty before and after: nothing to flip
     return coverFace(intro.phase === "armed" ? intro.from[i] : value);
@@ -59,6 +62,7 @@ export function Board({ onHover, onPeek }: BoardProps) {
   const waves = useGame((s) => s.waves);
   const winPhase = useGame((s) => s.winPhase);
   const intro = useGame((s) => s.intro);
+  const shuffle = useGame((s) => s.shuffle);
 
   /** The newest running wave passing through cell i, if any. */
   const waveAt = (i: number) => {
@@ -155,11 +159,11 @@ export function Board({ onHover, onPeek }: BoardProps) {
               highlighted={highlighted.has(i)}
               shakeId={shake?.cell === i ? shake.id : undefined}
               wave={waveAt(i)}
-              flap={flapFace(intro, winPhase, i, board[i])}
+              flap={flapFace(shuffle, intro, winPhase, i, board[i])}
               flapVia={!intro && winPhase === "reveal" ? cycleFaces(i) : undefined}
               onFlapLand={!intro && winPhase === "reveal" ? () => reportFlap(i) : undefined}
               onFlapDone={!intro && winPhase === "back" ? () => reportFlap(i) : undefined}
-              flapDelay={rippleDelay(i)}
+              flapDelay={shuffle ? shuffleDelay(i) : rippleDelay(i)}
             />
           ))}
         </div>

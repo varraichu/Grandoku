@@ -5,8 +5,7 @@ import solvedArt from "../assets/solved.svg";
 import gameOverArt from "../assets/game-over.svg";
 import { MAX_MISTAKES, useGame, type Difficulty } from "../store";
 import { formatTime } from "./Header";
-
-const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard", "expert", "master"];
+import { LEVELS } from "../puzzles";
 
 const HEADINGS = {
   win: { art: solvedArt, alt: "Solved" },
@@ -43,7 +42,7 @@ export function GameSheet({ variant, cancellable = true, onClose }: GameSheetPro
           <p className="sheet-time">{MAX_MISTAKES} mistakes · try this board again</p>
         ) : (
           <div className="difficulty-picker" role="radiogroup" aria-label="Difficulty">
-            {DIFFICULTIES.map((d) => (
+            {LEVELS.map((d) => (
               <button
                 key={d}
                 role="radio"

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { albums } from "./albums";
 import { CYCLE_FLIP_MS, FLIP_MS, landsAfterMs, type FlapFace } from "./components/SplitFlap";
-import { useGame } from "./store";
+import { randomBoard, useGame } from "./store";
 
 // ---- Tunable timings ----
 /** Pause after the winning move before the board starts flipping. */
@@ -161,4 +161,22 @@ export function useBoardIntro() {
     }
     return () => window.clearTimeout(t);
   }, [intro]);
+}
+
+/** While a puzzle is generating, the board re-deals random covers this often (each cell flips once per deal). */
+export const SHUFFLE_TICK_MS = 750;
+/** Each cell's fixed offset within a deal (0-250ms), so a deal ripples unevenly like a real board. */
+export const shuffleDelay = (i: number) => ((i * 37) % 11) * 25;
+
+/** Shuffles the board while a new game's puzzle is being generated in the background. */
+export function useShuffle() {
+  const loading = useGame((s) => s.loading);
+
+  useEffect(() => {
+    if (!loading) return;
+    const t = window.setInterval(() => {
+      if (useGame.getState().loading) useGame.setState({ shuffle: randomBoard() });
+    }, SHUFFLE_TICK_MS);
+    return () => window.clearInterval(t);
+  }, [loading]);
 }

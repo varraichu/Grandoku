@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { WinPhase } from "./winSequence";
-import { generate, solve, type Difficulty } from "sudoku-core";
+import type { Difficulty } from "sudoku-core";
+import { nextPuzzle, takeReadyPuzzle, type Puzzle } from "./puzzles";
 import { type Board, type HighlightMode, WAVE_RISE_MS, completionWave, nextMode, peersOf, usedDigits } from "./sudoku";
 
 export type { Difficulty };
@@ -31,6 +32,10 @@ interface GameState {
   /** False on load until a level is picked: the board is empty and nothing runs. */
   started: boolean;
   intro: Intro | null;
+  /** A new game whose puzzle is still being generated (in the background worker). */
+  loading: Difficulty | null;
+  /** While loading: random covers the board shuffles through (a new set every tick). */
+  shuffle: Board | null;
   puzzle: Board;
   solution: Board;
   board: Board;
@@ -84,17 +89,11 @@ const freshAttempt = (puzzle: Board) => ({
   notesMode: false,
 });
 
-function createGame(difficulty: Difficulty) {
-  const puzzle = generate(difficulty);
-  const result = solve(puzzle);
-  if (!result.solved || !result.board) throw new Error(result.error ?? "Generated puzzle has no solution");
-  return {
-    difficulty,
-    puzzle,
-    solution: result.board,
-    ...freshAttempt(puzzle),
-  };
-}
+/** A board of random covers, for the shuffle shown while a puzzle is being generated. */
+export const randomBoard = (): Board => Array.from({ length: 81 }, () => 1 + Math.floor(Math.random() * 9));
+
+/** Bumped by every newGame, so a slow puzzle for an abandoned request is ignored. */
+let gameRequest = 0;
 
 const EMPTY: Board = Array(81).fill(null);
 
@@ -128,21 +127,40 @@ export const useGame = create<GameState>()((set, get) => {
     ...freshAttempt(EMPTY),
     started: false,
     intro: null,
+    loading: null,
+    shuffle: null,
     highlightMode: "column",
     hintsOn: false,
 
     // New games and restarts flip the board from what's showing now into the fresh puzzle.
-    // The first game (from the empty load-up board) just appears.
-    newGame: (difficulty) =>
-      set({
-        ...createGame(difficulty),
-        started: true,
-        intro: get().started ? { from: get().board, phase: "armed" } : null,
-      }),
+    // Puzzles come from background workers; usually one is ready, otherwise the board shuffles
+    // until it arrives. The first game (from the empty load-up board) just appears if it's ready.
+    newGame: (difficulty) => {
+      const request = ++gameRequest;
+      const begin = ({ puzzle, solution }: Puzzle) => {
+        if (request !== gameRequest) return; // a newer game was asked for meanwhile
+        const { started, shuffle, board } = get();
+        const from = shuffle ?? (started ? board : null);
+        set({
+          difficulty,
+          puzzle,
+          solution,
+          ...freshAttempt(puzzle),
+          started: true,
+          loading: null,
+          shuffle: null,
+          intro: from ? { from, phase: "armed" } : null,
+        });
+      };
+      const ready = takeReadyPuzzle(difficulty);
+      if (ready) return begin(ready);
+      set({ loading: difficulty, shuffle: randomBoard(), selectedCell: null, intro: null, waves: [] });
+      nextPuzzle(difficulty).then(begin);
+    },
     restart: () => set({ ...freshAttempt(get().puzzle), intro: { from: get().board, phase: "armed" } }),
 
     selectCell: (i) => {
-      if (!get().started || get().intro) return;
+      if (!get().started || get().intro || get().loading) return;
       const { selectedCell, highlightMode, hintsOn } = get();
       if (selectedCell !== i) return set({ selectedCell: i }); // mode is sticky across selections
       if (!hintsOn) return set({ selectedCell: null }); // nothing to cycle: re-tapping deselects
@@ -179,7 +197,7 @@ export const useGame = create<GameState>()((set, get) => {
         won,
         lost,
       } = get();
-      if (!get().started || get().intro || won || lost || i === null || puzzle[i] !== null) return;
+      if (!get().started || get().intro || get().loading || won || lost || i === null || puzzle[i] !== null) return;
       if (hintsOn && usedDigits(highlightMode, i, board).has(digit)) return; // faded in the tray
       const snapshot = { board, notes };
 
@@ -228,7 +246,7 @@ export const useGame = create<GameState>()((set, get) => {
 
     erase: () => {
       const { selectedCell: i, puzzle, board, notes, history, won, lost } = get();
-      if (get().intro || won || lost || i === null || puzzle[i] !== null) return;
+      if (get().intro || get().loading || won || lost || i === null || puzzle[i] !== null) return;
       const snapshot = { board, notes };
       if (board[i] !== null) {
         const nextBoard = [...board];
@@ -243,14 +261,14 @@ export const useGame = create<GameState>()((set, get) => {
 
     undo: () => {
       const { history, won, lost } = get();
-      if (get().intro || won || lost || history.length === 0) return;
+      if (get().intro || get().loading || won || lost || history.length === 0) return;
       const prev = history[history.length - 1];
       set({ board: prev.board, notes: prev.notes, history: history.slice(0, -1), shake: null, waves: [] });
     },
 
     tick: () => {
-      const { started, intro, won, lost, elapsed } = get();
-      if (started && !intro && !won && !lost) set({ elapsed: elapsed + 1 });
+      const { started, intro, loading, won, lost, elapsed } = get();
+      if (started && !intro && !loading && !won && !lost) set({ elapsed: elapsed + 1 });
     },
   };
 });
