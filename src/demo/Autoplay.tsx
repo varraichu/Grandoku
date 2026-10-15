@@ -49,6 +49,8 @@ function Panel() {
     if (running) return;
     stopRef.current = false;
     setRunning(label);
+    // Moves are locked while a new board flips in; wait it out so no cell gets skipped.
+    while (useGame.getState().intro && !stopRef.current) await sleep(50);
     for (const k of cells()) {
       const s = useGame.getState();
       if (stopRef.current || s.won || s.lost) break;
@@ -68,7 +70,7 @@ function Panel() {
     const last = left[left.length - 1];
     // Instant (no per-cell animations): everything correct except the last cell, which is selected for you.
     const board = s.solution.map((v, k) => (k === last ? null : v));
-    useGame.setState({ board, selectedCell: last, notesMode: false, shake: null, wave: null });
+    useGame.setState({ board, selectedCell: last, notesMode: false, shake: null, waves: [] });
   };
 
   const makeMistake = () => {
