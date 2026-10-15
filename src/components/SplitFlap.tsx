@@ -11,7 +11,7 @@ export const SETTLE_DEG = 4;
 /** Darkness (0-1) of a flap at 90°, to fake shading. */
 export const SHADE_MAX = 0.45;
 /** One quick flip while a cell rattles through in-between faces (like letters on a departures board). */
-export const CYCLE_FLIP_MS = 80;
+export const CYCLE_FLIP_MS = 45;
 /** Point in the bottom flap's fall where it first lands (before the settle bounce). */
 const LAND_AT = 0.72;
 
@@ -115,6 +115,9 @@ interface SplitFlapProps {
   timing?: FlapTiming;
   /** Crossfade instead of flipping (defaults to the user's reduced-motion setting). */
   reducedMotion?: boolean;
+  /** The final face has landed (before its settle bounce). */
+  onLand?: () => void;
+  /** The flip has fully finished. */
   onDone?: () => void;
 }
 
@@ -123,12 +126,22 @@ interface SplitFlapProps {
  * down at the midline (0 → -90°) uncovering the new top half, then the new bottom half
  * falls from 90° to 0 over the old bottom half, with a small settle. Transforms only.
  */
-export function SplitFlap({ face, delay = 0, via, timing = DEFAULT_TIMING, reducedMotion, onDone }: SplitFlapProps) {
+export function SplitFlap({
+  face,
+  delay = 0,
+  via,
+  timing = DEFAULT_TIMING,
+  reducedMotion,
+  onLand,
+  onDone,
+}: SplitFlapProps) {
   const [shown, setShown] = useState(face);
   const [flip, setFlip] = useState<{ from: FlapFace; to: FlapFace; via: FlapFace[] } | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
+  const onLandRef = useRef(onLand);
+  onLandRef.current = onLand;
 
   // A new face arrives: flip from whatever is showing now.
   if (faceKey(face) !== faceKey(flip ? flip.to : shown)) {
@@ -141,7 +154,13 @@ export function SplitFlap({ face, delay = 0, via, timing = DEFAULT_TIMING, reduc
     const fade = reducedMotion ?? prefersReducedMotion();
     let anims: Animation[] = [];
     let cancelled = false;
+    let raf = 0;
+    let clearInline = () => {};
 
+    let landTimer = 0;
+    const landIn = (ms: number) => {
+      landTimer = window.setTimeout(() => !cancelled && onLandRef.current?.(), ms);
+    };
     const finish = () => {
       setShown(flip.to);
       setFlip(null);
@@ -151,44 +170,84 @@ export function SplitFlap({ face, delay = 0, via, timing = DEFAULT_TIMING, reduc
     if (fade) {
       const top = stage.querySelector<HTMLElement>(".flap-fade")!;
       anims = [top.animate([{ opacity: 0 }, { opacity: 1 }], { duration: timing.flipMs, delay, fill: "both" })];
+      landIn(delay + timing.flipMs);
       Promise.all(anims.map((a) => a.finished))
         .then(() => !cancelled && finish())
         .catch(() => {}); // cancelled by a newer flip
     } else {
       // [still top (new), still bottom (old), falling top (old), landing bottom (new)]
       const faces = stage.querySelectorAll<HTMLElement>(".flap-face");
-      const [topLeaf, bottomLeaf] = stage.querySelectorAll<HTMLElement>(".flap-leaf");
-      const steps = [...flip.via, flip.to];
+      const leaves = stage.querySelectorAll<HTMLElement>(".flap-leaf");
+      const [topLeaf, bottomLeaf] = leaves;
+      const shades = [...leaves].map((l) => l.querySelector<HTMLElement>(".flap-shade")!);
+      const paint = (to: FlapFace, from: FlapFace) => [to, from, from, to].forEach((f, n) => setFace(faces[n], f));
+
+      /**
+       * Rattle through the in-between faces, driven per frame from elapsed time: the face and flap
+       * angles are computed for "now", so each quick flip lasts exactly CYCLE_FLIP_MS on screen
+       * (awaiting one animation before starting the next loses ~2 frames per flip).
+       */
+      const rattle = () =>
+        new Promise<FlapFace>((resolve) => {
+          const via = flip.via;
+          const start = performance.now() + delay;
+          let step = -1;
+          const frame = (now: number) => {
+            if (cancelled) return;
+            const t = now - start;
+            if (t < 0) return void (raf = requestAnimationFrame(frame));
+            const k = Math.floor(t / CYCLE_FLIP_MS);
+            if (k >= via.length) return resolve(via[via.length - 1]);
+            if (k !== step) {
+              if (step === -1) stage.classList.add("is-rattling");
+              step = k;
+              paint(via[k], k === 0 ? flip.from : via[k - 1]);
+            }
+            const p = (t - k * CYCLE_FLIP_MS) / CYCLE_FLIP_MS;
+            const top = Math.min(1, p / TOP_SHARE);
+            const bottom = Math.max(0, (p - TOP_SHARE) / (1 - TOP_SHARE));
+            topLeaf.style.transform = `rotateX(${-90 * top * top}deg)`; // accelerating fall
+            bottomLeaf.style.transform = `rotateX(${90 * (1 - bottom) * (1 - bottom)}deg)`;
+            shades[0].style.opacity = String(timing.shade * 0.6 * top);
+            shades[1].style.opacity = String(timing.shade * 0.6 * (1 - bottom));
+            raf = requestAnimationFrame(frame);
+          };
+          raf = requestAnimationFrame(frame);
+        });
 
       (async () => {
         let from = flip.from;
-        for (let k = 0; k < steps.length; k++) {
-          const to = steps[k];
-          const landing = k === steps.length - 1;
-          // Repaint the four halves for this step in place (no re-render), then flip.
-          [to, from, from, to].forEach((f, n) => setFace(faces[n], f));
-          const prev = anims;
-          anims = flapAnimations(topLeaf, bottomLeaf, {
-            flipMs: landing ? timing.flipMs : CYCLE_FLIP_MS,
-            settleDeg: landing ? timing.settleDeg : 0,
-            shade: landing ? timing.shade : timing.shade * 0.6,
-            delay: k === 0 ? delay : 0,
-          });
-          prev.forEach((a) => a.cancel());
-          try {
-            await Promise.all(anims.map((a) => a.finished));
-          } catch {
-            return; // cancelled by a newer flip
-          }
+        if (flip.via.length) {
+          from = await rattle();
           if (cancelled) return;
-          from = to;
+          clearInline();
         }
-        finish();
+        // The landing flip onto the final face, at normal speed with its settle.
+        stage.classList.remove("is-rattling");
+        const lead = flip.via.length ? 0 : delay;
+        paint(flip.to, from);
+        landIn(lead + landsAfterMs(timing));
+        anims = flapAnimations(topLeaf, bottomLeaf, { ...timing, delay: lead });
+        try {
+          await Promise.all(anims.map((a) => a.finished));
+        } catch {
+          return; // cancelled by a newer flip
+        }
+        if (!cancelled) finish();
       })();
+
+      clearInline = () => {
+        [topLeaf, bottomLeaf].forEach((l) => (l.style.transform = ""));
+        shades.forEach((sh) => (sh.style.opacity = ""));
+      };
     }
 
     return () => {
       cancelled = true;
+      cancelAnimationFrame(raf);
+      window.clearTimeout(landTimer);
+      stage.classList.remove("is-rattling");
+      clearInline();
       anims.forEach((a) => a.cancel());
     };
     // Only (re)start when the flip itself changes; timing/delay are read at its start.

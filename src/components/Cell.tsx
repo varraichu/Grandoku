@@ -19,6 +19,8 @@ interface CellProps {
   flapDelay?: number;
   /** Faces the flap rattles through before landing on `flap`. */
   flapVia?: FlapFace[];
+  onFlapLand?: () => void;
+  onFlapDone?: () => void;
 }
 
 export const Cell = memo(function Cell({
@@ -34,6 +36,8 @@ export const Cell = memo(function Cell({
   flap,
   flapDelay,
   flapVia,
+  onFlapLand,
+  onFlapDone,
 }: CellProps) {
   const cellRef = useRef<HTMLDivElement>(null);
 
@@ -74,7 +78,7 @@ export const Cell = memo(function Cell({
       style={wave ? ({ "--wave-delay": `${wave.delay}ms` } as React.CSSProperties) : undefined}
     >
       {flap ? (
-        <SplitFlap face={flap} delay={flapDelay} via={flapVia} />
+        <SplitFlap face={flap} delay={flapDelay} via={flapVia} onLand={onFlapLand} onDone={onFlapDone} />
       ) : album ? (
         <img className="cover" src={album.cover} alt="" draggable={false} />
       ) : notes.size > 0 ? (
