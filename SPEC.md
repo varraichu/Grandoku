@@ -32,7 +32,8 @@ Sudoku where the nine symbols are Ariana Grande album covers instead of digits. 
 ## Feature 1: Hints, highlighting and filtered tray
 
 ### Hints
-- A 💡 Hints split button sits in the controls row. The bulb turns hints on/off; the segment next to it ("Col ▾") opens a Column / Row / Box picker (picking one also turns hints on). Keyboard: `H` toggles hints, `M` cycles the mode.
+- Controls (Erase, Notes, Hints) are tiles on offset colour blocks, matching the tray covers: pressing sinks a tile onto its block, and Notes/Hints stay sunk and tinted while on.
+- The Hints tile has two zones: 💡 Hints turns hints on/off, and three mini 3×3 grid icons pick Column / Row / Box in one tap (picking one also turns hints on). Everything is fixed-width, so the tile never shifts. Keyboard: `H` toggles hints, `M` cycles the mode.
 - Hints start off on every load.
 - Hints off: selecting a cell highlights the cell plus its whole row, column and box. Nothing in the tray is faded or blocked. Re-tapping the selected cell deselects it.
 - Hints on: the board highlights only the active unit (column, row or box), and re-tapping the selected cell cycles column → row → box → deselected.

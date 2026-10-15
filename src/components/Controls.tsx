@@ -1,9 +1,34 @@
-import { useEffect, useRef, useState } from "react";
 import { useGame } from "../store";
-import { MODES, MODE_LABELS } from "../sudoku";
+import { MODES, type HighlightMode } from "../sudoku";
 
-const MENU_LABELS = { column: "Column", row: "Row", box: "Box" } as const;
+const MODE_NAMES: Record<HighlightMode, string> = { column: "Column", row: "Row", box: "Box" };
 
+// Which squares of a 3×3 mini grid each mode fills (row-major).
+const MODE_GLYPHS: Record<HighlightMode, number[]> = {
+  column: [1, 4, 7],
+  row: [3, 4, 5],
+  box: [0, 1, 3, 4],
+};
+
+function ModeGlyph({ mode }: { mode: HighlightMode }) {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden>
+      {Array.from({ length: 9 }, (_, k) => (
+        <rect
+          key={k}
+          x={(k % 3) * 5.5 + 0.5}
+          y={Math.floor(k / 3) * 5.5 + 0.5}
+          width="4"
+          height="4"
+          rx="1"
+          className={MODE_GLYPHS[mode].includes(k) ? "is-filled" : undefined}
+        />
+      ))}
+    </svg>
+  );
+}
+
+/** Controls are tiles on offset colour blocks, like the tray covers: press sinks a tile, toggles stay sunk. */
 export function Controls() {
   const notesMode = useGame((s) => s.notesMode);
   const hintsOn = useGame((s) => s.hintsOn);
@@ -13,78 +38,45 @@ export function Controls() {
   const toggleHints = useGame((s) => s.toggleHints);
   const setHighlightMode = useGame((s) => s.setHighlightMode);
 
-  const [menuOpen, setMenuOpen] = useState(false);
-  const hintsRef = useRef<HTMLDivElement>(null);
-
-  // Close the mode menu on a tap outside it or Escape.
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onPointerDown = (e: PointerEvent) => {
-      if (!hintsRef.current?.contains(e.target as Node)) setMenuOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMenuOpen(false);
-    };
-    window.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [menuOpen]);
-
   return (
     <div className="controls">
-      <button className="control control-erase" onClick={erase}>
+      <button className="tile tile-erase" onClick={erase}>
         <img src="/icons/erase.webp" alt="" draggable={false} />
         <span>Erase</span>
       </button>
       <button
-        className={`control control-notes${notesMode ? " is-on" : ""}`}
+        className={`tile tile-notes${notesMode ? " is-on" : ""}`}
         onClick={toggleNotesMode}
         aria-pressed={notesMode}
       >
         <img src="/icons/notes.webp" alt="" draggable={false} />
         <span>Notes</span>
       </button>
-      {/* Split button: the bulb turns hints on/off, the side segment picks the unit they cover. */}
-      <div ref={hintsRef} className={`control control-hints${hintsOn ? " is-on" : ""}`}>
-        <div className="hints-split">
-          <button className="hints-toggle" onClick={toggleHints} aria-pressed={hintsOn} aria-label="Hints">
-            <span aria-hidden>💡</span>
-          </button>
-          <button
-            className="hints-mode"
-            onClick={() => setMenuOpen((o) => !o)}
-            aria-haspopup="menu"
-            aria-expanded={menuOpen}
-            aria-label={`Hint area: ${MENU_LABELS[highlightMode]}. Change.`}
-          >
-            {MODE_LABELS[highlightMode]}
-            <svg viewBox="0 0 10 6" aria-hidden>
-              <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            </svg>
-          </button>
-        </div>
-        <span aria-hidden>Hints</span>
-        {menuOpen && (
-          <div className="hints-menu" role="menu" aria-label="Hint area">
-            {MODES.map((m) => (
+      <div className={`tile tile-hints${hintsOn ? " is-on" : ""}`}>
+        <button className="hints-toggle" onClick={toggleHints} aria-pressed={hintsOn}>
+          <span className="hints-bulb" aria-hidden>
+            💡
+          </span>
+          <span>Hints</span>
+        </button>
+        <div className="hints-modes" role="radiogroup" aria-label="Hint area">
+          {MODES.map((m) => {
+            const active = hintsOn && highlightMode === m;
+            return (
               <button
                 key={m}
-                role="menuitemradio"
-                aria-checked={hintsOn && highlightMode === m}
-                className={hintsOn && highlightMode === m ? "is-active" : ""}
-                onClick={() => {
-                  setHighlightMode(m);
-                  setMenuOpen(false);
-                }}
+                role="radio"
+                aria-checked={active}
+                aria-label={MODE_NAMES[m]}
+                title={MODE_NAMES[m]}
+                className={`hints-mode${active ? " is-active" : ""}${highlightMode === m ? " is-current" : ""}`}
+                onClick={() => setHighlightMode(m)}
               >
-                {MENU_LABELS[m]}
+                <ModeGlyph mode={m} />
               </button>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

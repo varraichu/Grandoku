@@ -64,8 +64,8 @@ export function HelpSheet({ onClose }: { onClose: () => void }) {
             <b>Tap a cover</b> below the board to place it.
           </li>
           <li>
-            <b>💡 Hints</b> fades out covers already used in the column, row or box (pick which with the button next to
-            the bulb). With hints on, tapping the selected cell again switches between them.
+            <b>💡 Hints</b> fades out covers already used in the column, row or box (pick which with the little grids
+            next to the bulb). With hints on, tapping the selected cell again switches between them.
           </li>
           <li>
             <b>Notes</b> switches to pencil marks; the screen flips to show it's on.

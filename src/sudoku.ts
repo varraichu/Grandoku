@@ -2,11 +2,6 @@ export type Board = Array<number | null>;
 export type HighlightMode = "column" | "row" | "box";
 
 export const MODES: HighlightMode[] = ["column", "row", "box"];
-export const MODE_LABELS: Record<HighlightMode, string> = {
-  column: "Col",
-  row: "Row",
-  box: "Box",
-};
 
 export const nextMode = (mode: HighlightMode): HighlightMode =>
   MODES[(MODES.indexOf(mode) + 1) % MODES.length];
