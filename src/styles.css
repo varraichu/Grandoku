@@ -1091,12 +1091,9 @@ button.tile {
     padding: 0 0 var(--tile-drop);
   }
 
-  button.tile:hover:not(:active) {
+  /* Hover lifts resting tiles only; switched-on tiles stay sunk. */
+  button.tile:hover:not(:active):not(.is-on) {
     --sink: calc(-1 * var(--u));
-  }
-
-  .tile.is-on:hover {
-    --sink: calc(3 * var(--u));
   }
 
   .tray {
