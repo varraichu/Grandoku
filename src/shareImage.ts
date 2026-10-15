@@ -3,7 +3,7 @@
 import { albumFor } from "./albums";
 import { formatTime } from "./components/Header";
 import { TATTOOS, sizeFor } from "./components/Tattoos";
-import type { GameResult } from "./store";
+import { MAX_MISTAKES, type GameResult } from "./store";
 import type { Board } from "./sudoku";
 
 const W = 1080;
@@ -22,9 +22,10 @@ const FONT = `"Helvetica Neue", Helvetica, Arial, sans-serif`;
 // Layout (px).
 const TITLE_W = 470;
 const TITLE_Y = 44;
-const BOARD = 820; // board square
+const META_Y = 300; // baseline of the small labels in the stats row under the logo
+const BOARD = 860; // board square
 const BOARD_X = (W - BOARD) / 2;
-const BOARD_Y = 250;
+const BOARD_Y = 420;
 const BOX_GAP = 14;
 const BOX_BORDER = 8;
 const BOX_RADIUS = 26;
@@ -96,36 +97,60 @@ function drawTattoos(ctx: CanvasRenderingContext2D, images: HTMLImageElement[]) 
   ctx.restore();
 }
 
-function drawStats(ctx: CanvasRenderingContext2D, r: GameResult) {
-  const cx = W / 2;
-  const top = BOARD_Y + BOARD + 70;
-  ctx.textAlign = "center";
+/**
+ * The stats row under the logo, laid out like the app's: Mistakes (with the ring) on the left,
+ * the level in pink with the hints used under it in the middle, and the Score on the right.
+ */
+function drawMeta(ctx: CanvasRenderingContext2D, r: GameResult, ring: HTMLImageElement) {
+  const left = BOARD_X + 6;
+  const right = BOARD_X + BOARD - 6;
+  const valueY = META_Y + 62;
   ctx.textBaseline = "alphabetic";
 
-  ctx.fillStyle = COLORS.muted;
-  ctx.font = `500 30px ${FONT}`;
-  ctx.fillText("Score", cx, top);
+  const label = (text: string, x: number, align: CanvasTextAlign) => {
+    ctx.textAlign = align;
+    ctx.fillStyle = COLORS.ink;
+    ctx.font = `500 30px ${FONT}`;
+    ctx.fillText(text, x, META_Y);
+  };
+  const value = (text: string, x: number, align: CanvasTextAlign, color: string) => {
+    ctx.textAlign = align;
+    ctx.fillStyle = color;
+    ctx.font = `700 64px ${FONT}`;
+    ctx.fillText(text, x, valueY);
+    return ctx.measureText(text).width;
+  };
 
-  ctx.fillStyle = COLORS.pink;
-  ctx.font = `700 92px ${FONT}`;
-  ctx.fillText(formatTime(r.score), cx, top + 90);
+  // Mistakes: black at 0, pink from the first mistake (as in the app), then the ring.
+  label("Mistakes", left, "left");
+  const mistakesW = value(`${r.mistakes}/${MAX_MISTAKES}`, left, "left", r.mistakes > 0 ? COLORS.pink : COLORS.ink);
+  // Sized and centred on the number as in the app (ring ~1.07× the number's font size).
+  const ringH = 68;
+  const ringW = ringH * (ring.naturalWidth / ring.naturalHeight || 28 / 19.3);
+  const capMiddle = valueY - 64 * 0.36;
+  ctx.drawImage(ring, left + mistakesW + 10, capMiddle - ringH / 2, ringW, ringH);
 
+  // The level in pink, the hints used under it.
   const level = r.difficulty[0].toUpperCase() + r.difficulty.slice(1);
-  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
-  ctx.fillStyle = COLORS.ink;
-  ctx.font = `500 32px ${FONT}`;
-  ctx.fillText(
-    `${level}  ·  ${formatTime(r.time)}  ·  ${plural(r.mistakes, "mistake")}  ·  ${plural(r.hints, "hint")}`,
-    cx,
-    top + 150,
-  );
+  ctx.textAlign = "center";
+  ctx.fillStyle = COLORS.pink;
+  ctx.font = `500 44px ${FONT}`;
+  ctx.fillText(level, W / 2, valueY - 18);
+  ctx.fillStyle = COLORS.muted;
+  ctx.font = `500 28px ${FONT}`;
+  ctx.fillText(`${r.hints} ${r.hints === 1 ? "hint" : "hints"}`, W / 2, valueY + 22);
+
+  // Score (time plus penalties) where the app shows Time.
+  label("Score", right, "right");
+  value(formatTime(r.score), right, "right", COLORS.ink);
 }
 
 /** Draws the result image and returns it as a PNG blob. */
 export async function renderResultImage(board: Board, result: GameResult): Promise<Blob> {
   const digits = [...new Set(board.filter((v): v is number => v !== null))];
-  const [title, ...images] = await Promise.all([
+  const [title, ring, ...images] = await Promise.all([
     loadImage("/type/title.svg"),
+    loadImage("/icons/Ring.svg"),
     ...digits.map((d) => loadImage(albumFor(d).coverLarge)),
     ...TATTOOS.map((t) => loadImage(`/tattoos/${t.name}.webp`)),
   ]);
@@ -146,7 +171,7 @@ export async function renderResultImage(board: Board, result: GameResult): Promi
   ctx.drawImage(title, BOARD_X + BOARD - TITLE_W, TITLE_Y, TITLE_W, titleH);
 
   drawBoard(ctx, board, covers);
-  drawStats(ctx, result);
+  drawMeta(ctx, result, ring);
 
   return new Promise((resolve, reject) =>
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Couldn't create the image"))), "image/png"),
