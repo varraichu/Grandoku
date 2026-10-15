@@ -1,6 +1,13 @@
 import { useEffect } from "react";
 import { albums } from "./albums";
-import { CYCLE_FLIP_MS, FLIP_MS, landsAfterMs, type FlapFace } from "./components/SplitFlap";
+import {
+  CYCLE_FLIP_MS,
+  DEFAULT_TIMING,
+  FLIP_MS,
+  landsAfterMs,
+  type FlapFace,
+  type FlapTiming,
+} from "./components/SplitFlap";
 import { randomBoard, useGame } from "./store";
 
 // ---- Tunable timings ----
@@ -19,8 +26,12 @@ export const HOLD_MS = 0;
 /** Pause after the board has flipped back, before the summary appears. */
 export const END_BEAT_MS = 400;
 
-/** One full diagonal sweep of single flips (new-board intro): the last cell starts at 16 steps (+ jitter), then flips. */
-export const SWEEP_MS = 16 * RIPPLE_MS + JITTER_MS + FLIP_MS;
+/** Starting a board (new game, restart, first Start): a slower, more deliberate flip than the win's. */
+export const INTRO_FLIP_MS = 750;
+export const INTRO_TIMING: FlapTiming = { ...DEFAULT_TIMING, flipMs: INTRO_FLIP_MS };
+
+/** One full diagonal sweep of board-start flips: the last cell starts at 16 steps (+ jitter), then flips. */
+export const SWEEP_MS = 16 * RIPPLE_MS + JITTER_MS + INTRO_FLIP_MS;
 
 /**
  * Win sequence phases. `armed`: cells swap to flaps showing the solved board (no visual change).

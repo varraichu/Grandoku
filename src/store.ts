@@ -134,13 +134,13 @@ export const useGame = create<GameState>()((set, get) => {
 
     // New games and restarts flip the board from what's showing now into the fresh puzzle.
     // Puzzles come from background workers; usually one is ready, otherwise the board shuffles
-    // until it arrives. The first game (from the empty load-up board) just appears if it's ready.
+    // until it arrives.
     newGame: (difficulty) => {
       const request = ++gameRequest;
       const begin = ({ puzzle, solution }: Puzzle) => {
         if (request !== gameRequest) return; // a newer game was asked for meanwhile
-        const { started, shuffle, board } = get();
-        const from = shuffle ?? (started ? board : null);
+        const { shuffle, board } = get();
+        const from = shuffle ?? board; // from the empty load-up board too: the clues flip in
         set({
           difficulty,
           puzzle,
@@ -149,7 +149,7 @@ export const useGame = create<GameState>()((set, get) => {
           started: true,
           loading: null,
           shuffle: null,
-          intro: from ? { from, phase: "armed" } : null,
+          intro: { from, phase: "armed" },
         });
       };
       const ready = takeReadyPuzzle(difficulty);
