@@ -26,8 +26,8 @@ export const HOLD_MS = 0;
 /** Pause after the board has flipped back, before the summary appears. */
 export const END_BEAT_MS = 400;
 
-/** Starting a board (new game, restart, first Start): a slower, more deliberate flip than the win's. */
-export const INTRO_FLIP_MS = 750;
+/** Starting a board (new game, restart, first Start) uses the same flip length as the win. */
+export const INTRO_FLIP_MS = FLIP_MS;
 export const INTRO_TIMING: FlapTiming = { ...DEFAULT_TIMING, flipMs: INTRO_FLIP_MS };
 
 /** One full diagonal sweep of board-start flips: the last cell starts at 16 steps (+ jitter), then flips. */

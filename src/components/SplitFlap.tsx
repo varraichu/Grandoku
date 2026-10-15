@@ -3,7 +3,7 @@ import "./SplitFlap.css";
 
 // ---- Tunable timings (defaults; the demo page can override them per flip) ----
 /** One whole flip: the tile turns over (0 → -180°), the new cover coming round on its back. */
-export const FLIP_MS = 550;
+export const FLIP_MS = 750;
 /** How far (degrees) the tile bounces back after landing. 0 = no settle. */
 export const SETTLE_DEG = 6;
 /** Darkness (0-1) of the tile when edge-on (90°), to fake shading. */
