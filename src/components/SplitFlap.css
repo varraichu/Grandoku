@@ -1,0 +1,90 @@
+/* Split-flap cell. .flap is a size container so perspective can scale with the cell. */
+.flap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  container-type: size;
+}
+
+.flap-stage {
+  position: absolute;
+  inset: 0;
+  perspective: 400cqh;
+}
+
+.flap-full {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+}
+
+/* Each half clips a full-height copy of its face, so the two halves line up seamlessly. */
+.flap-half {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  overflow: hidden;
+  backface-visibility: hidden;
+}
+
+.flap-top {
+  top: 0;
+}
+
+.flap-bottom {
+  bottom: 0;
+}
+
+.flap-face {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 200%;
+  background-repeat: no-repeat;
+}
+
+.flap-top .flap-face {
+  top: 0;
+}
+
+.flap-bottom .flap-face {
+  bottom: 0;
+}
+
+/* The moving flaps hinge at the midline and sit above the still halves. */
+.flap-leaf {
+  z-index: 1;
+  will-change: transform;
+}
+
+.flap-top.flap-leaf {
+  transform-origin: 50% 100%;
+}
+
+.flap-bottom.flap-leaf {
+  transform-origin: 50% 0;
+  transform: rotateX(90deg);
+}
+
+.flap-shade {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The hairline gap between the two flaps, visible only mid-flip, like a real board. */
+.flap-stage.is-flipping::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  margin-top: -0.5px;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 2;
+  pointer-events: none;
+}
