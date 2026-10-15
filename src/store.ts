@@ -90,7 +90,16 @@ const freshAttempt = (puzzle: Board) => ({
 });
 
 /** A board of random covers, for the shuffle shown while a puzzle is being generated. */
-export const randomBoard = (): Board => Array.from({ length: 81 }, () => 1 + Math.floor(Math.random() * 9));
+/** Covers per shuffle deal: about a third of the board, like a puzzle's clues. */
+const SHUFFLE_COVERS = 27;
+
+/** A shuffle deal: random covers in ~a third of the cells (random cells), the rest blank. */
+export const randomBoard = (): Board => {
+  const board: Board = Array(81).fill(null);
+  const cells = [...board.keys()].sort(() => Math.random() - 0.5).slice(0, SHUFFLE_COVERS);
+  for (const k of cells) board[k] = 1 + Math.floor(Math.random() * 9);
+  return board;
+};
 
 /** Bumped by every newGame, so a slow puzzle for an abandoned request is ignored. */
 let gameRequest = 0;
