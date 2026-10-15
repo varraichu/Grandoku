@@ -20,6 +20,8 @@ interface GameState {
   notes: Notes;
   selectedCell: number | null;
   highlightMode: HighlightMode;
+  /** Hints on: highlight just the mode's unit and fade/block covers already used in it. Starts off every load. */
+  hintsOn: boolean;
   notesMode: boolean;
   history: Snapshot[];
   elapsed: number; // seconds
@@ -37,6 +39,7 @@ interface GameState {
   moveSelection: (dRow: number, dCol: number) => void;
   setHighlightMode: (mode: HighlightMode) => void;
   cycleHighlightMode: () => void;
+  toggleHints: () => void;
   toggleNotesMode: () => void;
   input: (digit: number) => void;
   erase: () => void;
@@ -79,13 +82,15 @@ const waveFrom = (delays: Map<number, number> | null, prev: GameState["wave"]): 
 export const useGame = create<GameState>()((set, get) => ({
   ...createGame("medium"),
   highlightMode: "column",
+  hintsOn: false,
 
   newGame: (difficulty) => set(createGame(difficulty)),
   restart: () => set(freshAttempt(get().puzzle)),
 
   selectCell: (i) => {
-    const { selectedCell, highlightMode } = get();
+    const { selectedCell, highlightMode, hintsOn } = get();
     if (selectedCell !== i) return set({ selectedCell: i }); // mode is sticky across selections
+    if (!hintsOn) return set({ selectedCell: null }); // nothing to cycle: re-tapping deselects
     // Re-tapping cycles column → row → box → deselected.
     if (highlightMode === "box") set({ selectedCell: null, highlightMode: "column" });
     else set({ highlightMode: nextMode(highlightMode) });
@@ -99,14 +104,28 @@ export const useGame = create<GameState>()((set, get) => ({
     set({ selectedCell: r * 9 + c });
   },
 
-  setHighlightMode: (highlightMode) => set({ highlightMode }),
+  // Picking a mode is asking for hints, so it switches them on.
+  setHighlightMode: (highlightMode) => set({ highlightMode, hintsOn: true }),
   cycleHighlightMode: () => set({ highlightMode: nextMode(get().highlightMode) }),
+  toggleHints: () => set({ hintsOn: !get().hintsOn }),
   toggleNotesMode: () => set({ notesMode: !get().notesMode }),
 
   input: (digit) => {
-    const { selectedCell: i, puzzle, board, notes, notesMode, highlightMode, history, solution, won, lost } = get();
+    const {
+      selectedCell: i,
+      puzzle,
+      board,
+      notes,
+      notesMode,
+      highlightMode,
+      hintsOn,
+      history,
+      solution,
+      won,
+      lost,
+    } = get();
     if (won || lost || i === null || puzzle[i] !== null) return;
-    if (usedDigits(highlightMode, i, board).has(digit)) return; // faded in the tray
+    if (hintsOn && usedDigits(highlightMode, i, board).has(digit)) return; // faded in the tray
     const snapshot = { board, notes };
 
     if (notesMode) {

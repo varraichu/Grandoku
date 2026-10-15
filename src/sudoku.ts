@@ -8,13 +8,6 @@ export const MODE_LABELS: Record<HighlightMode, string> = {
   box: "Box",
 };
 
-// Placeholder icons until the real artwork arrives.
-export const MODE_ICONS: Record<HighlightMode, string> = {
-  column: "🏛️",
-  row: "🚣",
-  box: "📦",
-};
-
 export const nextMode = (mode: HighlightMode): HighlightMode =>
   MODES[(MODES.indexOf(mode) + 1) % MODES.length];
 
@@ -39,8 +32,9 @@ export const peersOf = (i: number): number[] => {
   return [...set];
 };
 
-/** Cells lit up on the board for the given selection and mode. */
-export const highlightedCells = (mode: HighlightMode, i: number): Set<number> => {
+/** Cells lit up on the board: the hint mode's unit, or with hints off the cell's row, column and box. */
+export const highlightedCells = (mode: HighlightMode | null, i: number): Set<number> => {
+  if (mode === null) return new Set([i, ...peersOf(i)]);
   switch (mode) {
     case "column":
       return new Set(colCells(colOf(i)));

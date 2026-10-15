@@ -14,7 +14,14 @@ const HEADINGS = {
   lost: { art: gameOverArt, alt: "Game over" },
 };
 
-export function GameSheet({ variant, onClose }: { variant: "win" | "new" | "lost"; onClose: () => void }) {
+interface GameSheetProps {
+  variant: "win" | "new" | "lost";
+  /** New game only: offer Cancel (not on load, when there's no game of the player's to go back to). */
+  cancellable?: boolean;
+  onClose: () => void;
+}
+
+export function GameSheet({ variant, cancellable = true, onClose }: GameSheetProps) {
   const current = useGame((s) => s.difficulty);
   const elapsed = useGame((s) => s.elapsed);
   const newGame = useGame((s) => s.newGame);
@@ -50,7 +57,7 @@ export function GameSheet({ variant, onClose }: { variant: "win" | "new" | "lost
           </div>
         )}
         <div className="sheet-actions">
-          {variant === "new" && (
+          {variant === "new" && cancellable && (
             <button className="sheet-secondary" onClick={onClose}>
               Cancel
             </button>

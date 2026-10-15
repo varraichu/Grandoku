@@ -58,10 +58,14 @@ export function HelpSheet({ onClose }: { onClose: () => void }) {
         <h3>Controls</h3>
         <ul className="help-controls">
           <li>
-            <b>Tap a cell</b> to select it. Tap it again to switch between column, row and box, then to deselect.
+            <b>Tap a cell</b> to select it; its row, column and box light up. Tap it again to deselect.
           </li>
           <li>
-            <b>Tap a cover</b> below the board to place it. Covers already used in the highlighted area fade out.
+            <b>Tap a cover</b> below the board to place it.
+          </li>
+          <li>
+            <b>💡 Hints</b> fades out covers already used in the column, row or box (pick which with the button next
+            to the bulb). With hints on, tapping the selected cell again switches between them.
           </li>
           <li>
             <b>Notes</b> switches to pencil marks; the screen flips to show it's on.

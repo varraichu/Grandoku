@@ -24,6 +24,7 @@ export function Board({ onHover, onPeek }: BoardProps) {
   const solution = useGame((s) => s.solution);
   const selectedCell = useGame((s) => s.selectedCell);
   const highlightMode = useGame((s) => s.highlightMode);
+  const hintsOn = useGame((s) => s.hintsOn);
   const selectCell = useGame((s) => s.selectCell);
   const shake = useGame((s) => s.shake);
   const wave = useGame((s) => s.wave);
@@ -41,8 +42,8 @@ export function Board({ onHover, onPeek }: BoardProps) {
   }, [wave]);
 
   const highlighted = useMemo(
-    () => (selectedCell === null ? new Set<number>() : highlightedCells(highlightMode, selectedCell)),
-    [highlightMode, selectedCell],
+    () => (selectedCell === null ? new Set<number>() : highlightedCells(hintsOn ? highlightMode : null, selectedCell)),
+    [hintsOn, highlightMode, selectedCell],
   );
 
   const press = useRef<{ timer: number; x: number; y: number } | null>(null);

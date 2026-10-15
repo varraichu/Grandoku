@@ -31,7 +31,9 @@ export function App() {
   const [hoveredCell, setHoveredCell] = useState<number | null>(null);
   const [peekKeyHeld, setPeekKeyHeld] = useState(false);
   const [longPressCell, setLongPressCell] = useState<number | null>(null);
-  const [newGameOpen, setNewGameOpen] = useState(false);
+  // The level picker opens on every load (after the first-visit help, if that's showing).
+  const [newGameOpen, setNewGameOpen] = useState(true);
+  const [pickerOnLoad, setPickerOnLoad] = useState(true);
   const [helpOpen, setHelpOpen] = useState(() => !hasSeenHelp());
 
   const closeHelp = useCallback(() => {
@@ -75,6 +77,7 @@ export function App() {
       else if (e.key === "ArrowRight") s.moveSelection(0, 1);
       else if (e.key.toLowerCase() === "n") s.toggleNotesMode();
       else if (e.key.toLowerCase() === "m") s.cycleHighlightMode();
+      else if (e.key.toLowerCase() === "h") s.toggleHints();
       else if (e.key === "Escape") useGame.setState({ selectedCell: null });
       else return;
       e.preventDefault();
@@ -116,7 +119,12 @@ export function App() {
         <Header onHelpClick={() => setHelpOpen(true)} />
         {/* Grouped so the screen's even spacing keeps the meta row hugging the board. */}
         <div className="play">
-          <Meta onDifficultyClick={() => setNewGameOpen(true)} />
+          <Meta
+            onDifficultyClick={() => {
+              setPickerOnLoad(false);
+              setNewGameOpen(true);
+            }}
+          />
           <Board onHover={setHoveredCell} onPeek={setLongPressCell} />
         </div>
         <Controls />
@@ -134,7 +142,9 @@ export function App() {
       )}
       {won && <GameSheet variant="win" onClose={() => {}} />}
       {lost && <GameSheet variant="lost" onClose={() => {}} />}
-      {!won && !lost && newGameOpen && <GameSheet variant="new" onClose={() => setNewGameOpen(false)} />}
+      {!won && !lost && !helpOpen && newGameOpen && (
+        <GameSheet variant="new" cancellable={!pickerOnLoad} onClose={() => setNewGameOpen(false)} />
+      )}
       {helpOpen && <HelpSheet onClose={closeHelp} />}
     </div>
   );

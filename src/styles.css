@@ -451,27 +451,28 @@ button:focus-visible {
 
 /* ---------- Controls ---------- */
 
+/* Sizes from Figma 2408-1510: ~29px icons over 8px labels. */
 .controls {
   position: relative;
-  height: calc(64 * var(--u));
-  padding: 0 calc(8 * var(--u));
+  height: calc(42 * var(--u));
+  padding: 0 calc(20 * var(--u));
   display: flex;
   justify-content: space-between;
 }
 
 .control {
   position: relative;
-  min-width: calc(70 * var(--u));
+  min-width: calc(48 * var(--u));
   height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: calc(4 * var(--u));
-  font-size: calc(16 * var(--u));
+  gap: calc(3 * var(--u));
+  font-size: calc(8 * var(--u));
   font-weight: 500;
   line-height: 1;
-  padding-bottom: calc(4 * var(--u));
+  padding-bottom: calc(2 * var(--u));
 }
 
 .control img {
@@ -480,10 +481,10 @@ button:focus-visible {
 }
 
 .control-erase img {
-  width: calc(50.181 * var(--u));
-  height: calc(39.83 * var(--u));
+  width: calc(36.322 * var(--u));
+  height: calc(28.83 * var(--u));
   object-fit: cover;
-  margin-bottom: calc(6 * var(--u));
+  margin-bottom: calc(1 * var(--u));
   transition: transform 150ms ease;
 }
 
@@ -492,23 +493,25 @@ button:focus-visible {
 }
 
 .control-notes img {
-  width: calc(26.011 * var(--u));
-  height: calc(33.838 * var(--u));
+  width: calc(17.707 * var(--u));
+  height: calc(23.035 * var(--u));
   object-fit: cover;
   transform: rotate(-31.24deg);
-  margin-bottom: calc(10 * var(--u));
+  margin-bottom: calc(4 * var(--u));
   transition: transform 300ms ease;
 }
 
 .control-notes.is-on img {
-  transform: rotate(-31.24deg) translateY(calc(-4 * var(--u))) scale(1.12);
+  transform: rotate(-31.24deg) translateY(calc(-2.5 * var(--u))) scale(1.12);
 }
 
-.control-notes span {
+.control-notes span,
+.control-hints > span {
   position: relative;
 }
 
-.control-notes.is-on span {
+.control-notes.is-on span,
+.control-hints.is-on > span {
   font-weight: 700;
 }
 
@@ -517,8 +520,8 @@ button:focus-visible {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: calc(-5 * var(--u));
-  height: calc(2 * var(--u));
+  bottom: calc(-3 * var(--u));
+  height: calc(1 * var(--u));
   border-radius: 1px;
   background: currentColor;
   transform: scaleX(0);
@@ -529,13 +532,89 @@ button:focus-visible {
   transform: scaleX(1);
 }
 
-/* Placeholder emoji icons for the highlight modes. */
-.control-emoji {
-  height: calc(42 * var(--u));
+/* Hints split button: bulb (on/off) | mode segment (opens the picker). */
+.hints-split {
+  display: flex;
+  align-items: stretch;
+  height: calc(26 * var(--u));
+  margin-bottom: calc(1 * var(--u));
+  border: calc(1.2 * var(--u)) solid var(--ink-title);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.hints-toggle {
+  display: grid;
+  place-items: center;
+  width: calc(28 * var(--u));
+  font-size: calc(15 * var(--u));
+  line-height: 1;
+}
+
+.hints-toggle span {
+  filter: grayscale(1);
+  opacity: 0.4;
+  transition: opacity 200ms ease, filter 200ms ease, transform 200ms ease;
+}
+
+.control-hints.is-on .hints-toggle {
+  background: var(--hl);
+}
+
+.control-hints.is-on .hints-toggle span {
+  filter: none;
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.hints-mode {
   display: flex;
   align-items: center;
-  font-size: calc(32 * var(--u));
+  gap: calc(3 * var(--u));
+  padding: 0 calc(7 * var(--u)) 0 calc(6 * var(--u));
+  border-left: calc(1.2 * var(--u)) solid var(--ink-title);
+  font-size: calc(9 * var(--u));
+  font-weight: 700;
   line-height: 1;
+}
+
+.control-hints:not(.is-on) .hints-mode {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.hints-mode svg {
+  width: calc(7 * var(--u));
+  height: calc(4.2 * var(--u));
+}
+
+/* Opens upwards, over the board edge, so it never covers the tray. */
+.hints-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6 * var(--u));
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  min-width: calc(84 * var(--u));
+  padding: calc(4 * var(--u));
+  background: var(--bg);
+  border: calc(1.5 * var(--u)) solid var(--line);
+  border-radius: calc(10 * var(--u));
+  box-shadow: 0 calc(4 * var(--u)) calc(14 * var(--u)) rgba(16, 24, 32, 0.18);
+  animation: pop-in 160ms ease;
+}
+
+.hints-menu button {
+  padding: calc(7 * var(--u)) calc(10 * var(--u));
+  border-radius: calc(6 * var(--u));
+  font-size: calc(12 * var(--u));
+  font-weight: 500;
+  text-align: left;
+}
+
+.hints-menu button.is-active {
+  background: var(--hl-selected);
+  font-weight: 700;
 }
 
 /* ---------- Tray ---------- */
@@ -1002,7 +1081,7 @@ button:focus-visible {
   .controls {
     --u: calc(var(--du) * 1.15);
     grid-area: controls;
-    height: calc(76 * var(--u));
+    height: calc(48 * var(--u));
     padding: 0;
   }
 

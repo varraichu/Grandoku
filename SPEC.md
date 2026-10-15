@@ -29,22 +29,20 @@ Sudoku where the nine symbols are Ariana Grande album covers instead of digits. 
   - `notesMode`: boolean
   - `history`: stack for undo (covers both placements and note changes)
 
-## Feature 1: Highlight modes and filtered tray
+## Feature 1: Hints, highlighting and filtered tray
 
-### Highlight modes
-- Modes: `cell` (default), `column`, `row`, `box`.
-- Tapping the already-selected cell cycles: cell → column → row → box → cell.
-- A mode switcher at the bottom of the screen (Cell / Col / Row / Box) sets the mode directly and always shows which mode is active.
-- The mode is sticky: selecting a different cell keeps the current mode. It does not reset to `cell`.
-- The board highlights the cells in the active unit (just the cell, its column, its row, or its 3×3 box).
-- The highlighted cell has a different color compared to the other cells part of the selection
+### Hints
+- A 💡 Hints split button sits in the controls row. The bulb turns hints on/off; the segment next to it ("Col ▾") opens a Column / Row / Box picker (picking one also turns hints on). Keyboard: `H` toggles hints, `M` cycles the mode.
+- Hints start off on every load.
+- Hints off: selecting a cell highlights the cell plus its whole row, column and box. Nothing in the tray is faded or blocked. Re-tapping the selected cell deselects it.
+- Hints on: the board highlights only the active unit (column, row or box), and re-tapping the selected cell cycles column → row → box → deselected.
+- The mode is sticky: selecting a different cell keeps the current mode.
+- The selected cell is tinted more strongly (#65CADC at 60%) than the rest of the highlight (15%).
 
 ### Filtered tray
 - The tray below the board always shows all nine covers in fixed slots, ordered by digit. Slots never move or reflow.
-- Covers that are already used in the active unit are faded and not tappable. The rest are full opacity.
-- A cover with all nine placed correctly on the board is greyed out (grayscale) and not tappable, whatever the selection.
-  - `column` / `row` / `box`: fade digits already present in that unit.
-  - `cell`: does not fade digits present in the cell's row, column, or box, but highlights all those areas.
+- With hints on, covers already placed in the active unit are faded (greyscale wash) and not tappable.
+- A cover with all nine placed correctly on the board is greyed out and not tappable, whatever the selection or hint setting.
 - Use placed values for filtering, not notes.
 
 ## Feature 2: Notes
@@ -83,7 +81,7 @@ Sudoku where the nine symbols are Ariana Grande album covers instead of digits. 
 
 1. Albums config with placeholder covers and colors, game state store, `sudoku-core` integration, render board from a generated puzzle.
 2. Cell selection, placing and erasing covers, clue locking, undo.
-3. Highlight modes, cycle on re-tap, bottom mode switcher, sticky mode.
+3. Hints (on/off split button with Column/Row/Box picker), cycle on re-tap, sticky mode.
 4. Tray with fixed slots and fading per mode.
 5. Notes mode toggle and visual state, note entry, color swatch rendering in fixed positions.
 6. Auto-clearing notes on placement.

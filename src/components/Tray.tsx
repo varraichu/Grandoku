@@ -8,9 +8,14 @@ export function Tray() {
   const solution = useGame((s) => s.solution);
   const selectedCell = useGame((s) => s.selectedCell);
   const highlightMode = useGame((s) => s.highlightMode);
+  const hintsOn = useGame((s) => s.hintsOn);
   const input = useGame((s) => s.input);
 
-  const used = useMemo(() => usedDigits(highlightMode, selectedCell, board), [highlightMode, selectedCell, board]);
+  // Fading used covers is the hint; with hints off every cover stays available.
+  const used = useMemo(
+    () => (hintsOn ? usedDigits(highlightMode, selectedCell, board) : new Set<number>()),
+    [hintsOn, highlightMode, selectedCell, board],
+  );
   const done = useMemo(() => completedDigits(board, solution), [board, solution]);
 
   return (
