@@ -51,6 +51,8 @@ interface GameState {
   /** Split-flap win sequence progress; null until the game is won. */
   winPhase: WinPhase | null;
   mistakes: number; // wrong placements this attempt; undo doesn't refund them
+  /** Covers placed while hints were on (each counts as a hint used); undo doesn't refund them. */
+  hintedPlacements: number;
   lost: boolean; // hit MAX_MISTAKES: board locked until restart
   /** The wrong placement to shake; `id` changes each time so repeats in one cell replay it. */
   shake: { cell: number; id: number } | null;
@@ -83,6 +85,7 @@ const freshAttempt = (puzzle: Board) => ({
   won: false,
   winPhase: null,
   mistakes: 0,
+  hintedPlacements: 0,
   lost: false,
   shake: null,
   waves: [],
@@ -244,6 +247,7 @@ export const useGame = create<GameState>()((set, get) => {
         history: [...history, snapshot],
         won: solved,
         mistakes,
+        hintedPlacements: get().hintedPlacements + (hintsOn ? 1 : 0),
         lost: mistakes >= MAX_MISTAKES,
         shake: wrong ? { cell: i, id: (get().shake?.id ?? 0) + 1 } : null,
         // Placements that complete nothing leave a running wave alone. The winning move skips the
@@ -284,3 +288,18 @@ export const useGame = create<GameState>()((set, get) => {
 
 export const isMistake = (s: Pick<GameState, "puzzle" | "board" | "solution">, i: number) =>
   s.puzzle[i] === null && s.board[i] !== null && s.board[i] !== s.solution[i];
+
+/** Score penalties (seconds) added to the solve time. Lower scores are better. */
+export const MISTAKE_PENALTY_S = 15;
+export const HINT_PENALTY_S = 5;
+
+/** The result of a game: score = time + 15s per mistake + 5s per cover placed with hints on. */
+export const resultOf = (s: Pick<GameState, "elapsed" | "mistakes" | "hintedPlacements" | "difficulty">) => ({
+  difficulty: s.difficulty,
+  time: s.elapsed,
+  mistakes: s.mistakes,
+  hints: s.hintedPlacements,
+  score: s.elapsed + s.mistakes * MISTAKE_PENALTY_S + s.hintedPlacements * HINT_PENALTY_S,
+});
+
+export type GameResult = ReturnType<typeof resultOf>;

@@ -3,7 +3,8 @@ import { useState } from "react";
 import newGameArt from "../assets/new-game.svg";
 import solvedArt from "../assets/solved.svg";
 import gameOverArt from "../assets/game-over.svg";
-import { MAX_MISTAKES, useGame, type Difficulty } from "../store";
+import { MAX_MISTAKES, MISTAKE_PENALTY_S, HINT_PENALTY_S, resultOf, useGame, type Difficulty } from "../store";
+import { saveResultImage } from "../shareImage";
 import { formatTime } from "./Header";
 import { LEVELS } from "../puzzles";
 
@@ -25,7 +26,30 @@ export function GameSheet({ variant, cancellable = true, onClose }: GameSheetPro
   const elapsed = useGame((s) => s.elapsed);
   const newGame = useGame((s) => s.newGame);
   const restart = useGame((s) => s.restart);
+  const mistakes = useGame((s) => s.mistakes);
+  const hints = useGame((s) => s.hintedPlacements);
+  const board = useGame((s) => s.board);
   const [difficulty, setDifficulty] = useState<Difficulty>(current);
+  const [saving, setSaving] = useState<"idle" | "busy" | "failed">("idle");
+
+  const result = resultOf({ elapsed, mistakes, hintedPlacements: hints, difficulty: current });
+  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+  // How the score adds up: the time, then any penalties.
+  const breakdown = [
+    `Time ${formatTime(elapsed)}`,
+    mistakes > 0 && `+${mistakes * MISTAKE_PENALTY_S}s mistakes`,
+    hints > 0 && `+${hints * HINT_PENALTY_S}s hints`,
+  ].filter(Boolean);
+
+  const save = async () => {
+    setSaving("busy");
+    try {
+      await saveResultImage(board, result);
+      setSaving("idle");
+    } catch {
+      setSaving("failed");
+    }
+  };
 
   return (
     <div className="sheet-backdrop">
@@ -34,9 +58,18 @@ export function GameSheet({ variant, cancellable = true, onClose }: GameSheetPro
           <img src={HEADINGS[variant].art} alt={HEADINGS[variant].alt} draggable={false} />
         </h2>
         {variant === "win" && (
-          <p className="sheet-time">
-            {current[0].toUpperCase() + current.slice(1)} · {formatTime(elapsed)}
-          </p>
+          <div className="win-summary">
+            <p className="win-score-label">Score</p>
+            <p className="win-score">{formatTime(result.score)}</p>
+            <p className="win-breakdown">{breakdown.join(" · ")}</p>
+            <p className="win-details">
+              {current[0].toUpperCase() + current.slice(1)} · {plural(mistakes, "mistake")} · {plural(hints, "hint")}
+            </p>
+            <button className="win-save" onClick={save} disabled={saving === "busy"}>
+              {saving === "busy" ? "Saving…" : "Save image"}
+            </button>
+            {saving === "failed" && <p className="win-save-error">Couldn't save the image. Try again.</p>}
+          </div>
         )}
         {variant === "lost" ? (
           <p className="sheet-time">{MAX_MISTAKES} mistakes · try this board again</p>
