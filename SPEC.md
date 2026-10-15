@@ -65,8 +65,8 @@ Sudoku where the nine symbols are Ariana Grande album covers instead of digits. 
 - The popup is read-only.
 
 ### Auto-clearing notes
-- When a cover is placed in a cell, remove that digit from the notes of every cell in the same row, column, and box.
-- Placing a cover also clears all notes in that cell.
+- Only a correct placement clears notes: it removes that digit from the notes of every cell in the same row, column, and box. A wrong placement leaves every note alone (the cell's own notes reappear when the wrong cover is erased).
+- Placing a correct cover also clears all notes in that cell.
 - Both clears are part of the same undo step as the placement.
 
 ## Other behavior
