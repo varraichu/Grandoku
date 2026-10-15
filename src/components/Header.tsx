@@ -30,6 +30,7 @@ export function Header({ onHelpClick }: { onHelpClick: () => void }) {
 export function Meta({ onDifficultyClick }: { onDifficultyClick: () => void }) {
   const elapsed = useGame((s) => s.elapsed);
   const difficulty = useGame((s) => s.difficulty);
+  const loading = useGame((s) => s.loading);
   const mistakes = useGame((s) => s.mistakes);
 
   return (
@@ -44,8 +45,12 @@ export function Meta({ onDifficultyClick }: { onDifficultyClick: () => void }) {
           <img className="ring" src="/icons/Ring.svg" alt="" draggable={false} />
         </span>
       </div>
-      <button className="difficulty flip" onClick={onDifficultyClick} aria-label="Change difficulty">
-        {difficulty}
+      <button
+        className={`difficulty flip${loading ? " is-loading" : ""}`}
+        onClick={onDifficultyClick}
+        aria-label="Change difficulty"
+      >
+        {loading ? "Loading…" : difficulty}
       </button>
       <div className="meta-stat timer flip" aria-label="Elapsed time">
         <span className="meta-label">Time</span>

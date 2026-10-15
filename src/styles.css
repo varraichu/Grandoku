@@ -253,10 +253,19 @@ button:focus-visible {
   font-weight: 500;
   line-height: 1;
   text-transform: capitalize;
-  color: rgba(0, 0, 0, 0.44);
+  color: var(--mistake-count); /* the ring icon's pink */
 }
 
 .difficulty:hover {
+  color: color-mix(in srgb, var(--mistake-count), #000 20%);
+}
+
+/* While a puzzle is generating the label reads "Loading…" in quiet grey. */
+.difficulty.is-loading {
+  color: rgba(0, 0, 0, 0.44);
+}
+
+.difficulty.is-loading:hover {
   color: rgba(0, 0, 0, 0.7);
 }
 
