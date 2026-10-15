@@ -1156,7 +1156,8 @@ button.tile {
   .meta {
     --u: calc(var(--du) * 1.15);
     grid-area: meta;
-    margin-top: calc(40 * var(--u));
+    /* Same gap under the logo as between the control tiles and the tray (36 du). */
+    margin-top: calc(36 * var(--du));
     padding: 0;
   }
 
