@@ -174,10 +174,9 @@ export function useBoardIntro() {
   }, [intro]);
 }
 
-/** While a puzzle is generating, the board re-deals random covers this often (each cell flips once per deal). */
-export const SHUFFLE_TICK_MS = 750;
-/** Each cell's fixed offset within a deal (0-250ms), so a deal ripples unevenly like a real board. */
-export const shuffleDelay = (i: number) => ((i * 37) % 11) * 25;
+/** While a puzzle is generating, the board re-deals random covers this often: each deal sweeps
+ *  diagonally with the board-start flip, and the next starts once it has finished. */
+export const SHUFFLE_TICK_MS = SWEEP_MS + 100;
 
 /** Shuffles the board while a new game's puzzle is being generated in the background. */
 export function useShuffle() {

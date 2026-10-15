@@ -3,7 +3,7 @@ import { type Intro, isMistake, useGame } from "../store";
 import type { Board as BoardValues } from "../sudoku";
 import { albumFor, albums } from "../albums";
 import { boxCells, boxOf, highlightedCells } from "../sudoku";
-import { INTRO_TIMING, cycleFaces, reportFlap, rippleDelay, shuffleDelay, type WinPhase } from "../winSequence";
+import { INTRO_TIMING, cycleFaces, reportFlap, rippleDelay, type WinPhase } from "../winSequence";
 import type { FlapFace } from "./SplitFlap";
 import { Cell } from "./Cell";
 
@@ -36,7 +36,7 @@ const flapFace = (
   i: number,
   value: number | null,
 ): FlapFace | undefined => {
-  if (shuffle) return coverFace(shuffle[i]); // waiting for a puzzle: random covers, re-dealt each tick
+  if (shuffle) return coverFace(shuffle[i]); // waiting for a puzzle: random covers in random cells, re-dealt each tick
   if (intro) {
     if (intro.from[i] === null && value === null) return undefined; // empty before and after: nothing to flip
     return coverFace(intro.phase === "armed" ? intro.from[i] : value);
@@ -161,10 +161,10 @@ export function Board({ onHover, onPeek }: BoardProps) {
               wave={waveAt(i)}
               flap={flapFace(shuffle, intro, winPhase, i, board[i])}
               flapVia={!intro && winPhase === "reveal" ? cycleFaces(i) : undefined}
-              flapTiming={intro ? INTRO_TIMING : undefined}
+              flapTiming={intro || shuffle ? INTRO_TIMING : undefined}
               onFlapLand={!intro && winPhase === "reveal" ? () => reportFlap(i) : undefined}
               onFlapDone={!intro && winPhase === "back" ? () => reportFlap(i) : undefined}
-              flapDelay={shuffle ? shuffleDelay(i) : rippleDelay(i)}
+              flapDelay={rippleDelay(i)}
             />
           ))}
         </div>
