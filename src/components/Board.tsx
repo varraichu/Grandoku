@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, type PointerEvent } from "react";
 import { isMistake, useGame } from "../store";
-import { WAVE_RISE_MS, boxCells, highlightedCells } from "../sudoku";
+import { albumFor, albums } from "../albums";
+import { WAVE_RISE_MS, boxCells, boxOf, highlightedCells } from "../sudoku";
+import { rippleDelay, type WinPhase } from "../winSequence";
+import type { FlapFace } from "./SplitFlap";
 import { Cell } from "./Cell";
 
 const LONG_PRESS_MS = 450;
@@ -17,6 +20,19 @@ const indexFromEvent = (e: { target: EventTarget }): number | null => {
   return el ? Number(el.dataset.index) : null;
 };
 
+/**
+ * What a cell's flap shows in each win phase: its own cover, or (in the reveal) its ninth of
+ * the box's album cover. Box N shows album N. No flap outside the sequence.
+ */
+const flapFace = (phase: WinPhase | null, i: number, value: number | null): FlapFace | undefined => {
+  if (!phase || phase === "done" || value === null) return undefined;
+  if (phase !== "reveal") return { src: albumFor(value).cover };
+  return {
+    src: albums[boxOf(i)].coverLarge,
+    slice: { col: (i % 9) % 3, row: Math.floor(i / 9) % 3 },
+  };
+};
+
 export function Board({ onHover, onPeek }: BoardProps) {
   const puzzle = useGame((s) => s.puzzle);
   const board = useGame((s) => s.board);
@@ -28,6 +44,7 @@ export function Board({ onHover, onPeek }: BoardProps) {
   const selectCell = useGame((s) => s.selectCell);
   const shake = useGame((s) => s.shake);
   const wave = useGame((s) => s.wave);
+  const winPhase = useGame((s) => s.winPhase);
 
   // Drop the wave once its last cover has landed, so waving cells stop sitting above the rest.
   useEffect(() => {
@@ -90,6 +107,8 @@ export function Board({ onHover, onPeek }: BoardProps) {
       suppressClick.current = false;
       return;
     }
+    // Tapping the board during the win sequence skips to the end.
+    if (winPhase && winPhase !== "done") return useGame.setState({ winPhase: "done" });
     const i = indexFromEvent(e);
     if (i !== null) selectCell(i);
   };
@@ -124,6 +143,8 @@ export function Board({ onHover, onPeek }: BoardProps) {
               highlighted={highlighted.has(i)}
               shakeId={shake?.cell === i ? shake.id : undefined}
               wave={wave?.delays.has(i) ? { id: wave.id, delay: wave.delays.get(i)! } : undefined}
+              flap={flapFace(winPhase, i, board[i])}
+              flapDelay={rippleDelay(i)}
             />
           ))}
         </div>

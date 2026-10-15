@@ -1,5 +1,6 @@
 import { memo, useLayoutEffect, useRef } from "react";
 import { albumFor, albums } from "../albums";
+import { SplitFlap, type FlapFace } from "./SplitFlap";
 
 interface CellProps {
   index: number;
@@ -13,6 +14,9 @@ interface CellProps {
   shakeId?: number;
   /** Set while a completion wave runs through this cell; a new `id` replays it. */
   wave?: { id: number; delay: number };
+  /** Win sequence: the cell shows a split-flap with this face instead of its cover. */
+  flap?: FlapFace;
+  flapDelay?: number;
 }
 
 export const Cell = memo(function Cell({
@@ -25,6 +29,8 @@ export const Cell = memo(function Cell({
   highlighted,
   shakeId,
   wave,
+  flap,
+  flapDelay,
 }: CellProps) {
   const cellRef = useRef<HTMLDivElement>(null);
 
@@ -64,7 +70,9 @@ export const Cell = memo(function Cell({
       aria-label={label}
       style={wave ? ({ "--wave-delay": `${wave.delay}ms` } as React.CSSProperties) : undefined}
     >
-      {album ? (
+      {flap ? (
+        <SplitFlap face={flap} delay={flapDelay} />
+      ) : album ? (
         <img className="cover" src={album.cover} alt="" draggable={false} />
       ) : notes.size > 0 ? (
         <div className="note-grid">

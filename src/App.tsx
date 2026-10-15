@@ -8,6 +8,7 @@ import { NotePeek } from "./components/NotePeek";
 import { GameSheet } from "./components/GameSheet";
 import { HelpSheet } from "./components/HelpSheet";
 import { Tattoos } from "./components/Tattoos";
+import { useWinSequence } from "./winSequence";
 
 const HELP_SEEN_KEY = "grandoku:help-seen";
 
@@ -24,6 +25,9 @@ const isPeekKey = (e: KeyboardEvent) => e.key === "Shift" || e.key === " ";
 export function App() {
   const notesMode = useGame((s) => s.notesMode);
   const won = useGame((s) => s.won);
+  const winPhase = useGame((s) => s.winPhase);
+
+  useWinSequence();
   const lost = useGame((s) => s.lost);
   const selectedCell = useGame((s) => s.selectedCell);
   const notes = useGame((s) => s.notes);
@@ -140,7 +144,7 @@ export function App() {
           }}
         />
       )}
-      {won && <GameSheet variant="win" onClose={() => {}} />}
+      {won && winPhase === "done" && <GameSheet variant="win" onClose={() => {}} />}
       {lost && <GameSheet variant="lost" onClose={() => {}} />}
       {!won && !lost && !helpOpen && newGameOpen && (
         <GameSheet variant="new" cancellable={!pickerOnLoad} onClose={() => setNewGameOpen(false)} />

@@ -77,6 +77,7 @@ Sudoku where the nine symbols are Ariana Grande album covers instead of digits. 
 - Mistake counter in the meta row just above the board (`n/7` with the ring icon; black at 0, pink `#dc658d` from the first mistake), with the difficulty centred and the timer on the right (Figma node 2408-1339). Every wrong placement counts; undo doesn't refund it. The 7th mistake locks the board and shows a Game over sheet whose Restart replays the same puzzle with placements, notes, undo history, mistakes and timer reset.
 - Completion wave: when a placement makes a row, column or box all correct, its covers rise, grow and settle one after another (column top to bottom, row left to right, box row by row). Several units completed at once all wave together; a shared cell moves once.
 - Win state when `board` matches `solution`.
+- Win sequence (split-flap reveal, timings in `src/winSequence.ts` and `src/components/SplitFlap.tsx`): after the winning move every cell flips like a Solari board, rippling diagonally from top-left ((row + col) × 40ms). Each 3×3 box becomes one large album cover (box N shows album N) sliced across its cells, holds ~2.5s, then flips back to the solved board, and the win summary appears. Large covers (768px, `public/covers/large/`) are preloaded first. Input is locked; tapping the board skips to the summary. Reduced motion crossfades instead.
 
 ## Build order
 
