@@ -6,8 +6,6 @@ export interface Album {
   cover: string;
   /** 768px version for big uses: the win reveal (one cover per box) and the share image. */
   coverLarge: string;
-  /** Vertically motion-blurred copy, used while win flaps rattle through covers. */
-  coverBlur: string;
   color: string;
 }
 
@@ -18,7 +16,6 @@ export const albums: Album[] = [
     name: "Yours Truly",
     cover: "/covers/1_Yours_Truly_Alt.webp",
     coverLarge: "/covers/large/1_Yours_Truly_Alt.webp",
-    coverBlur: "/covers/blur/1_Yours_Truly_Alt.webp",
     color: "#d98e93",
   },
   {
@@ -26,7 +23,6 @@ export const albums: Album[] = [
     name: "My Everything",
     cover: "/covers/2_My_Everything_Alt.webp",
     coverLarge: "/covers/large/2_My_Everything_Alt.webp",
-    coverBlur: "/covers/blur/2_My_Everything_Alt.webp",
     color: "#7a7fa7",
   },
   {
@@ -34,7 +30,6 @@ export const albums: Album[] = [
     name: "Dangerous Woman",
     cover: "/covers/3_Dangerous_Woman.webp",
     coverLarge: "/covers/large/3_Dangerous_Woman.webp",
-    coverBlur: "/covers/blur/3_Dangerous_Woman.webp",
     color: "#979898",
   },
   {
@@ -42,7 +37,6 @@ export const albums: Album[] = [
     name: "Sweetener",
     cover: "/covers/4_Sweetener.webp",
     coverLarge: "/covers/large/4_Sweetener.webp",
-    coverBlur: "/covers/blur/4_Sweetener.webp",
     color: "#f8d5b8",
   },
   {
@@ -50,7 +44,6 @@ export const albums: Album[] = [
     name: "thank u, next",
     cover: "/covers/5_Thank_U_Next.webp",
     coverLarge: "/covers/large/5_Thank_U_Next.webp",
-    coverBlur: "/covers/blur/5_Thank_U_Next.webp",
     color: "#ae90a7",
   },
   {
@@ -58,7 +51,6 @@ export const albums: Album[] = [
     name: "Positions",
     cover: "/covers/6_Positions.webp",
     coverLarge: "/covers/large/6_Positions.webp",
-    coverBlur: "/covers/blur/6_Positions.webp",
     color: "#99b0a6",
   },
   {
@@ -66,7 +58,6 @@ export const albums: Album[] = [
     name: "Eternal Sunshine",
     cover: "/covers/7_Eternal_Sunshine.webp",
     coverLarge: "/covers/large/7_Eternal_Sunshine.webp",
-    coverBlur: "/covers/blur/7_Eternal_Sunshine.webp",
     color: "#46241e",
   },
   {
@@ -74,7 +65,6 @@ export const albums: Album[] = [
     name: "Brighter Days Ahead",
     cover: "/covers/8_BDA.webp",
     coverLarge: "/covers/large/8_BDA.webp",
-    coverBlur: "/covers/blur/8_BDA.webp",
     color: "#538393",
   },
   {
@@ -82,7 +72,6 @@ export const albums: Album[] = [
     name: "Petal",
     cover: "/covers/9_Petal.webp",
     coverLarge: "/covers/large/9_Petal.webp",
-    coverBlur: "/covers/blur/9_Petal.webp",
     color: "#101820",
   },
 ];

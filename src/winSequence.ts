@@ -47,7 +47,7 @@ export const cycleFaces = (i: number): FlapFace[] => {
     if (a === order[order.length - 1]) a = (a + 1) % 9; // never the same cover twice in a row
     order.push(a);
   }
-  return order.map((a) => ({ src: albums[a].coverBlur }));
+  return order.map((a) => ({ src: albums[a].cover }));
 };
 
 const LAST_CELL = 80;
@@ -84,16 +84,14 @@ const allCellsReport = (count: number, timeoutMs: number) =>
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Load and decode the large and blurred covers so no flap ever shows a blank tile. */
+/** Load and decode every large cover so no flap ever lands on a blank tile. */
 const preloadLargeCovers = () =>
   Promise.all(
-    albums.flatMap((a) =>
-      [a.coverLarge, a.coverBlur].map((src) => {
-        const img = new Image();
-        img.src = src;
-        return img.decode().catch(() => {});
-      }),
-    ),
+    albums.map((a) => {
+      const img = new Image();
+      img.src = a.coverLarge;
+      return img.decode().catch(() => {});
+    }),
   );
 
 /** Runs the split-flap reveal when the game is won. Tapping the board skips to `done`. */
