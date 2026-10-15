@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { albums } from "./albums";
-import { FLIP_MS } from "./components/SplitFlap";
+import { CYCLE_FLIP_MS, FLIP_MS, landsAfterMs, type FlapFace } from "./components/SplitFlap";
 import { useGame } from "./store";
 
 // ---- Tunable timings ----
@@ -10,13 +10,16 @@ export const START_BEAT_MS = 350;
 export const RIPPLE_MS = 85;
 /** Up to this much extra, fixed per cell: real flap boards are never perfectly in step. */
 export const JITTER_MS = 25;
+/** Covers each cell rattles through (quickly, like letters on a departures board) before landing,
+ *  both on the way to the reveal and on the way back. */
+export const CYCLE_COUNT = 9;
 /** Pause between the last reveal cell landing and the top-left cell flipping back. 0 = the board
  *  turns straight back the moment the full image completes. */
 export const HOLD_MS = 0;
 /** Pause after the board has flipped back, before the summary appears. */
 export const END_BEAT_MS = 400;
 
-/** One full diagonal sweep: the last cell (row 8 + col 8) starts at 16 steps (+ jitter), then flips. */
+/** One full diagonal sweep of single flips (new-board intro): the last cell starts at 16 steps (+ jitter), then flips. */
 export const SWEEP_MS = 16 * RIPPLE_MS + JITTER_MS + FLIP_MS;
 
 /**
@@ -29,6 +32,18 @@ export type WinPhase = "armed" | "reveal" | "back" | "done";
 const jitter = (i: number) => ((i * 7919) % 97) / 96;
 
 export const rippleDelay = (i: number) => (Math.floor(i / 9) + (i % 9)) * RIPPLE_MS + Math.round(jitter(i) * JITTER_MS);
+
+/** The covers a cell rattles through, each cell starting at a different album so neighbours differ. */
+export const cycleFaces = (i: number): FlapFace[] =>
+  Array.from({ length: CYCLE_COUNT }, (_, k) => ({ src: albums[(i * 4 + k) % albums.length].cover }));
+
+const LAST_CELL = 80;
+/** A win sweep cell: rattle through the cycle, then the landing flip. */
+const CYCLE_MS = CYCLE_COUNT * CYCLE_FLIP_MS;
+/** From the start of a win sweep until its last cell first lands (its settle overlaps what follows). */
+const WIN_SWEEP_LANDS_MS = rippleDelay(LAST_CELL) + CYCLE_MS + landsAfterMs();
+/** From the start of a win sweep until its last cell has completely finished. */
+const WIN_SWEEP_ENDS_MS = rippleDelay(LAST_CELL) + CYCLE_MS + FLIP_MS;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -60,10 +75,11 @@ export function useWinSequence() {
       await sleep(50); // let the flaps mount on the solved faces before they flip
       if (skipped()) return;
       setPhase("reveal");
-      await sleep(SWEEP_MS + HOLD_MS);
+      // Turn back as the image's last cell lands, so the board never pauses.
+      await sleep(WIN_SWEEP_LANDS_MS + HOLD_MS);
       if (skipped()) return;
       setPhase("back");
-      await sleep(SWEEP_MS + END_BEAT_MS);
+      await sleep(WIN_SWEEP_ENDS_MS + END_BEAT_MS);
       if (skipped()) return;
       setPhase("done");
     })();
