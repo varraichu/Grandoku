@@ -851,6 +851,65 @@ button.tile {
   color: var(--bg);
 }
 
+/* Win summary: the score leads, in the ring's pink; the rest explains it. */
+.win-summary {
+  margin-top: calc(14 * var(--u));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.win-summary p {
+  margin: 0;
+}
+
+.win-score-label {
+  font-size: calc(12 * var(--u));
+  font-weight: 500;
+  color: rgba(16, 24, 32, 0.55);
+}
+
+.win-score {
+  margin-top: calc(2 * var(--u));
+  font-size: calc(44 * var(--u));
+  font-weight: 700;
+  line-height: 1;
+  color: var(--mistake-count);
+  font-variant-numeric: tabular-nums;
+}
+
+.win-breakdown {
+  margin-top: calc(8 * var(--u));
+  font-size: calc(12 * var(--u));
+  color: rgba(16, 24, 32, 0.6);
+  font-variant-numeric: tabular-nums;
+}
+
+.win-details {
+  margin-top: calc(4 * var(--u));
+  font-size: calc(14 * var(--u));
+  font-weight: 500;
+}
+
+.win-save {
+  margin-top: calc(14 * var(--u));
+  padding: calc(9 * var(--u)) calc(18 * var(--u));
+  border: calc(1.5 * var(--u)) solid var(--ink-title);
+  border-radius: 999px;
+  font-size: calc(13 * var(--u));
+  font-weight: 700;
+}
+
+.win-save:disabled {
+  opacity: 0.5;
+}
+
+.win-save-error {
+  margin-top: calc(6 * var(--u));
+  font-size: calc(12 * var(--u));
+  color: var(--mistake);
+}
+
 .sheet-actions {
   margin-top: calc(24 * var(--u));
   display: flex;
