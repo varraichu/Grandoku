@@ -227,18 +227,22 @@ export const useGame = create<GameState>()((set, get) => {
       const nextBoard = [...board];
       nextBoard[i] = digit;
 
-      // Placement clears this cell's notes and the digit from every peer, in the same undo step.
+      const wrong = digit !== solution[i];
+
+      // A correct placement clears this cell's notes and the digit from every peer, in the same undo
+      // step. A wrong one leaves all notes alone: the cell's own reappear when the cover is erased.
       const nextNotes = [...notes];
-      nextNotes[i] = new Set();
-      for (const p of peersOf(i)) {
-        if (nextNotes[p].has(digit)) {
-          const s = new Set(nextNotes[p]);
-          s.delete(digit);
-          nextNotes[p] = s;
+      if (!wrong) {
+        nextNotes[i] = new Set();
+        for (const p of peersOf(i)) {
+          if (nextNotes[p].has(digit)) {
+            const s = new Set(nextNotes[p]);
+            s.delete(digit);
+            nextNotes[p] = s;
+          }
         }
       }
 
-      const wrong = digit !== solution[i];
       const mistakes = get().mistakes + (wrong ? 1 : 0);
       const solved = nextBoard.every((v, k) => v === solution[k]);
       set({

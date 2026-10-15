@@ -346,6 +346,16 @@ button:focus-visible {
   border-radius: inherit;
 }
 
+/* During a flip sequence the tile sits over the (hidden, still-loaded) cover. */
+.cover.is-under-flap {
+  visibility: hidden;
+}
+
+.cell-flap {
+  position: absolute;
+  inset: 0;
+}
+
 .cover {
   position: absolute;
   inset: 0;

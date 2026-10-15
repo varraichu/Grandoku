@@ -79,18 +79,21 @@ export const Cell = memo(function Cell({
       aria-label={label}
       style={wave ? ({ "--wave-delay": `${wave.delay}ms` } as React.CSSProperties) : undefined}
     >
+      {/* The cover stays mounted under any flip, hidden while the tile turns: swapping the tile for a
+          freshly mounted <img> when a sequence ends made the board blink as the images repainted. */}
+      {album && <img className={`cover${flap ? " is-under-flap" : ""}`} src={album.cover} alt="" draggable={false} />}
       {flap ? (
-        <SplitFlap
-          face={flap}
-          delay={flapDelay}
-          via={flapVia}
-          timing={flapTiming}
-          onLand={onFlapLand}
-          onDone={onFlapDone}
-        />
-      ) : album ? (
-        <img className="cover" src={album.cover} alt="" draggable={false} />
-      ) : notes.size > 0 ? (
+        <div className="cell-flap">
+          <SplitFlap
+            face={flap}
+            delay={flapDelay}
+            via={flapVia}
+            timing={flapTiming}
+            onLand={onFlapLand}
+            onDone={onFlapDone}
+          />
+        </div>
+      ) : album ? null : notes.size > 0 ? (
         <div className="note-grid">
           {albums.map((a) => (
             <span
