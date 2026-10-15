@@ -9,7 +9,7 @@ export const SETTLE_DEG = 6;
 /** Darkness (0-1) of the tile when edge-on (90°), to fake shading. */
 export const SHADE_MAX = 0.45;
 /** One flip while a cell runs through in-between covers before landing on its final one. */
-export const CYCLE_FLIP_MS = 240;
+export const CYCLE_FLIP_MS = 300;
 /** Point in the flip where the tile first lands (before the settle bounce). */
 const LAND_AT = 0.78;
 
