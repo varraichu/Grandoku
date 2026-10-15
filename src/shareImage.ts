@@ -2,6 +2,7 @@
 // it looks the same on every device. Every image is same-origin, so the canvas can be exported.
 import { albumFor } from "./albums";
 import { formatTime } from "./components/Header";
+import { TATTOOS, sizeFor } from "./components/Tattoos";
 import type { GameResult } from "./store";
 import type { Board } from "./sudoku";
 
@@ -70,6 +71,31 @@ function drawBoard(ctx: CanvasRenderingContext2D, board: Board, covers: Map<numb
   }
 }
 
+/** Design units → image pixels: the app's 402-wide phone frame scaled to the 1080 image. */
+const UNIT = W / 402;
+
+/**
+ * The background tattoos, scattered like the app's: one per cell of a 2×5 grid at a random spot,
+ * random rotation, 20% strength. Drawn first, so the board sits on top.
+ */
+function drawTattoos(ctx: CanvasRenderingContext2D, images: HTMLImageElement[]) {
+  const [cols, rows] = [2, 5];
+  const order = TATTOOS.map((t, i) => ({ ...t, img: images[i] })).sort(() => Math.random() - 0.5);
+  ctx.save();
+  ctx.globalAlpha = 0.2;
+  order.forEach(({ aspect, scale, img }, k) => {
+    const { w, h } = sizeFor(aspect, scale);
+    const x = ((k % cols) + 0.15 + Math.random() * 0.7) * (W / cols);
+    const y = (Math.floor(k / cols) + 0.15 + Math.random() * 0.7) * (H / rows);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(((Math.random() * 360 - 180) * Math.PI) / 180);
+    ctx.drawImage(img, (-w * UNIT) / 2, (-h * UNIT) / 2, w * UNIT, h * UNIT);
+    ctx.restore();
+  });
+  ctx.restore();
+}
+
 function drawStats(ctx: CanvasRenderingContext2D, r: GameResult) {
   const cx = W / 2;
   const top = BOARD_Y + BOARD + 70;
@@ -98,11 +124,13 @@ function drawStats(ctx: CanvasRenderingContext2D, r: GameResult) {
 /** Draws the result image and returns it as a PNG blob. */
 export async function renderResultImage(board: Board, result: GameResult): Promise<Blob> {
   const digits = [...new Set(board.filter((v): v is number => v !== null))];
-  const [title, ...coverImgs] = await Promise.all([
+  const [title, ...images] = await Promise.all([
     loadImage("/type/title.svg"),
     ...digits.map((d) => loadImage(albumFor(d).coverLarge)),
+    ...TATTOOS.map((t) => loadImage(`/tattoos/${t.name}.webp`)),
   ]);
-  const covers = new Map(digits.map((d, i) => [d, coverImgs[i]]));
+  const covers = new Map(digits.map((d, i) => [d, images[i]]));
+  const tattoos = images.slice(digits.length);
 
   const canvas = document.createElement("canvas");
   canvas.width = W;
@@ -111,9 +139,11 @@ export async function renderResultImage(board: Board, result: GameResult): Promi
 
   ctx.fillStyle = COLORS.bg;
   ctx.fillRect(0, 0, W, H);
+  drawTattoos(ctx, tattoos);
 
+  // Right-aligned with the board, as in the app.
   const titleH = TITLE_W * (title.naturalHeight / title.naturalWidth || 85 / 226);
-  ctx.drawImage(title, (W - TITLE_W) / 2, TITLE_Y, TITLE_W, titleH);
+  ctx.drawImage(title, BOARD_X + BOARD - TITLE_W, TITLE_Y, TITLE_W, titleH);
 
   drawBoard(ctx, board, covers);
   drawStats(ctx, result);
@@ -126,11 +156,10 @@ export async function renderResultImage(board: Board, result: GameResult): Promi
 const today = () => new Date().toISOString().slice(0, 10);
 
 /**
- * Saves the result image: the share sheet on phones (so it can go to Photos or a chat),
+ * Saves a rendered result image: the share sheet on phones (so it can go to Photos or a chat),
  * otherwise a download named grandoku-<date>.png.
  */
-export async function saveResultImage(board: Board, result: GameResult) {
-  const blob = await renderResultImage(board, result);
+export async function saveResultImage(blob: Blob) {
   const file = new File([blob], `grandoku-${today()}.png`, { type: "image/png" });
   const touch = window.matchMedia("(pointer: coarse)").matches;
   if (touch && navigator.canShare?.({ files: [file] })) {
