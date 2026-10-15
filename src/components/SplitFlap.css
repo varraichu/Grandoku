@@ -75,6 +75,12 @@
   pointer-events: none;
 }
 
+/* Rattling through covers: the faces are pre-blurred images (no live filter, which drops frames);
+   the flaps also get a streak of shading in the direction of travel. */
+.flap-stage.is-rattling .flap-leaf .flap-shade {
+  background: linear-gradient(#000, rgba(0, 0, 0, 0.25));
+}
+
 /* The hairline gap between the two flaps, visible only mid-flip, like a real board. */
 .flap-stage.is-flipping::after {
   content: "";

@@ -10,9 +10,9 @@ export const START_BEAT_MS = 350;
 export const RIPPLE_MS = 85;
 /** Up to this much extra, fixed per cell: real flap boards are never perfectly in step. */
 export const JITTER_MS = 25;
-/** Covers each cell rattles through (quickly, like letters on a departures board) before landing,
- *  both on the way to the reveal and on the way back. */
-export const CYCLE_COUNT = 9;
+/** Covers each cell rattles through (quickly, like letters on a departures board) before landing on
+ *  its slice of the reveal. More than nine repeats the albums in a reshuffled order. */
+export const CYCLE_COUNT = 18;
 /** Pause between the last reveal cell landing and the top-left cell flipping back. 0 = the board
  *  turns straight back the moment the full image completes. */
 export const HOLD_MS = 0;
@@ -33,28 +33,67 @@ const jitter = (i: number) => ((i * 7919) % 97) / 96;
 
 export const rippleDelay = (i: number) => (Math.floor(i / 9) + (i % 9)) * RIPPLE_MS + Math.round(jitter(i) * JITTER_MS);
 
-/** The covers a cell rattles through, each cell starting at a different album so neighbours differ. */
-export const cycleFaces = (i: number): FlapFace[] =>
-  Array.from({ length: CYCLE_COUNT }, (_, k) => ({ src: albums[(i * 4 + k) % albums.length].cover }));
+/**
+ * The covers a cell rattles through. Each pass over the nine albums uses a different stride
+ * (coprime with 9, so every album appears once per pass) and each cell starts at a different
+ * album, so repeats don't read as a loop and neighbours differ.
+ */
+export const cycleFaces = (i: number): FlapFace[] => {
+  const strides = [1, 4, 2, 7, 5, 8];
+  const order: number[] = [];
+  for (let k = 0; k < CYCLE_COUNT; k++) {
+    const pass = Math.floor(k / 9);
+    let a = (i * 4 + pass * 5 + (k % 9) * strides[pass % strides.length]) % 9;
+    if (a === order[order.length - 1]) a = (a + 1) % 9; // never the same cover twice in a row
+    order.push(a);
+  }
+  return order.map((a) => ({ src: albums[a].coverBlur }));
+};
 
 const LAST_CELL = 80;
-/** A win sweep cell: rattle through the cycle, then the landing flip. */
-const CYCLE_MS = CYCLE_COUNT * CYCLE_FLIP_MS;
-/** From the start of a win sweep until its last cell first lands (its settle overlaps what follows). */
-const WIN_SWEEP_LANDS_MS = rippleDelay(LAST_CELL) + CYCLE_MS + landsAfterMs();
-/** From the start of a win sweep until its last cell has completely finished. */
-const WIN_SWEEP_ENDS_MS = rippleDelay(LAST_CELL) + CYCLE_MS + FLIP_MS;
+/** Rough sweep lengths, only used as safety timeouts (the phases advance when the cells report in). */
+const REVEAL_LANDS_MS = rippleDelay(LAST_CELL) + CYCLE_COUNT * (CYCLE_FLIP_MS + 20) + landsAfterMs();
+const BACK_ENDS_MS = rippleDelay(LAST_CELL) + FLIP_MS;
+const SAFETY_MS = 1500;
+
+/**
+ * Cells report when their flap lands (reveal) or finishes (flip back). Each phase waits for every
+ * cell, so frame timing on slow devices can never cut the last cells off mid-flip.
+ */
+let reports = new Set<number>();
+let expected = 0;
+let onAllReported: (() => void) | null = null;
+
+export const reportFlap = (i: number) => {
+  reports.add(i);
+  if (reports.size >= expected) onAllReported?.();
+};
+
+const allCellsReport = (count: number, timeoutMs: number) =>
+  new Promise<void>((resolve) => {
+    reports = new Set();
+    expected = count;
+    const done = () => {
+      onAllReported = null;
+      window.clearTimeout(timer);
+      resolve();
+    };
+    onAllReported = done;
+    const timer = window.setTimeout(done, timeoutMs);
+  });
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Load and decode every large cover so no flap ever lands on a blank tile. */
+/** Load and decode the large and blurred covers so no flap ever shows a blank tile. */
 const preloadLargeCovers = () =>
   Promise.all(
-    albums.map((a) => {
-      const img = new Image();
-      img.src = a.coverLarge;
-      return img.decode().catch(() => {});
-    }),
+    albums.flatMap((a) =>
+      [a.coverLarge, a.coverBlur].map((src) => {
+        const img = new Image();
+        img.src = src;
+        return img.decode().catch(() => {});
+      }),
+    ),
   );
 
 /** Runs the split-flap reveal when the game is won. Tapping the board skips to `done`. */
@@ -74,12 +113,16 @@ export function useWinSequence() {
       setPhase("armed");
       await sleep(50); // let the flaps mount on the solved faces before they flip
       if (skipped()) return;
-      setPhase("reveal");
       // Turn back as the image's last cell lands, so the board never pauses.
-      await sleep(WIN_SWEEP_LANDS_MS + HOLD_MS);
+      const landed = allCellsReport(81, REVEAL_LANDS_MS + SAFETY_MS);
+      setPhase("reveal");
+      await landed;
+      await sleep(HOLD_MS);
       if (skipped()) return;
+      const finished = allCellsReport(81, BACK_ENDS_MS + SAFETY_MS);
       setPhase("back");
-      await sleep(WIN_SWEEP_ENDS_MS + END_BEAT_MS);
+      await finished;
+      await sleep(END_BEAT_MS);
       if (skipped()) return;
       setPhase("done");
     })();

@@ -2,7 +2,7 @@ import { useMemo, useRef, type PointerEvent } from "react";
 import { type Intro, isMistake, useGame } from "../store";
 import { albumFor, albums } from "../albums";
 import { boxCells, boxOf, highlightedCells } from "../sudoku";
-import { cycleFaces, rippleDelay, type WinPhase } from "../winSequence";
+import { cycleFaces, reportFlap, rippleDelay, type WinPhase } from "../winSequence";
 import type { FlapFace } from "./SplitFlap";
 import { Cell } from "./Cell";
 
@@ -156,7 +156,9 @@ export function Board({ onHover, onPeek }: BoardProps) {
               shakeId={shake?.cell === i ? shake.id : undefined}
               wave={waveAt(i)}
               flap={flapFace(intro, winPhase, i, board[i])}
-              flapVia={!intro && (winPhase === "reveal" || winPhase === "back") ? cycleFaces(i) : undefined}
+              flapVia={!intro && winPhase === "reveal" ? cycleFaces(i) : undefined}
+              onFlapLand={!intro && winPhase === "reveal" ? () => reportFlap(i) : undefined}
+              onFlapDone={!intro && winPhase === "back" ? () => reportFlap(i) : undefined}
               flapDelay={rippleDelay(i)}
             />
           ))}
