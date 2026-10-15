@@ -49,8 +49,8 @@ function Panel() {
     if (running) return;
     stopRef.current = false;
     setRunning(label);
-    // Moves are locked while a new board flips in; wait it out so no cell gets skipped.
-    while (useGame.getState().intro && !stopRef.current) await sleep(50);
+    // Moves are locked while a puzzle generates or a new board flips in; wait so no cell gets skipped.
+    while ((useGame.getState().loading || useGame.getState().intro) && !stopRef.current) await sleep(50);
     for (const k of cells()) {
       const s = useGame.getState();
       if (stopRef.current || s.won || s.lost) break;
