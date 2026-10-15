@@ -7,14 +7,16 @@ import { useGame } from "./store";
 /** Pause after the winning move before the board starts flipping. */
 export const START_BEAT_MS = 350;
 /** Ripple step: each cell waits (row + col) × this, so the flips sweep diagonally from top-left. */
-export const RIPPLE_MS = 40;
+export const RIPPLE_MS = 85;
+/** Up to this much extra, fixed per cell: real flap boards are never perfectly in step. */
+export const JITTER_MS = 25;
 /** How long the reveal (one big cover per box) holds before flipping back. */
 export const HOLD_MS = 2500;
 /** Pause after the board has flipped back, before the summary appears. */
 export const END_BEAT_MS = 400;
 
-/** One full diagonal sweep: the last cell (row 8 + col 8) starts at 16 steps, then flips. */
-export const SWEEP_MS = 16 * RIPPLE_MS + FLIP_MS;
+/** One full diagonal sweep: the last cell (row 8 + col 8) starts at 16 steps (+ jitter), then flips. */
+export const SWEEP_MS = 16 * RIPPLE_MS + JITTER_MS + FLIP_MS;
 
 /**
  * Win sequence phases. `armed`: cells swap to flaps showing the solved board (no visual change).
@@ -22,7 +24,10 @@ export const SWEEP_MS = 16 * RIPPLE_MS + FLIP_MS;
  */
 export type WinPhase = "armed" | "reveal" | "back" | "done";
 
-export const rippleDelay = (i: number) => (Math.floor(i / 9) + (i % 9)) * RIPPLE_MS;
+// A fixed pseudo-random 0-1 per cell (so both sweeps use the same unevenness).
+const jitter = (i: number) => ((i * 7919) % 97) / 96;
+
+export const rippleDelay = (i: number) => (Math.floor(i / 9) + (i % 9)) * RIPPLE_MS + Math.round(jitter(i) * JITTER_MS);
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -66,4 +71,22 @@ export function useWinSequence() {
       cancelled = true;
     };
   }, [won]);
+}
+
+/** New game / restart: flip the board from the previous covers into the new puzzle. Tapping skips. */
+export function useBoardIntro() {
+  const intro = useGame((s) => s.intro);
+
+  useEffect(() => {
+    if (!intro) return;
+    const still = () => useGame.getState().intro === intro;
+    let t: number;
+    if (intro.phase === "armed") {
+      // Mount the flaps on the old faces first, then flip them to the new ones.
+      t = window.setTimeout(() => still() && useGame.setState({ intro: { ...intro, phase: "in" } }), 50);
+    } else {
+      t = window.setTimeout(() => still() && useGame.setState({ intro: null }), SWEEP_MS);
+    }
+    return () => window.clearTimeout(t);
+  }, [intro]);
 }

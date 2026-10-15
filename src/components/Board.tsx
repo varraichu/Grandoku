@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, type PointerEvent } from "react";
-import { isMistake, useGame } from "../store";
+import { useMemo, useRef, type PointerEvent } from "react";
+import { type Intro, isMistake, useGame } from "../store";
 import { albumFor, albums } from "../albums";
-import { WAVE_RISE_MS, boxCells, boxOf, highlightedCells } from "../sudoku";
+import { boxCells, boxOf, highlightedCells } from "../sudoku";
 import { rippleDelay, type WinPhase } from "../winSequence";
 import type { FlapFace } from "./SplitFlap";
 import { Cell } from "./Cell";
@@ -20,13 +20,26 @@ const indexFromEvent = (e: { target: EventTarget }): number | null => {
   return el ? Number(el.dataset.index) : null;
 };
 
+const BLANK: FlapFace = { src: "" };
+const coverFace = (value: number | null): FlapFace => (value === null ? BLANK : { src: albumFor(value).cover });
+
 /**
- * What a cell's flap shows in each win phase: its own cover, or (in the reveal) its ninth of
- * the box's album cover. Box N shows album N. No flap outside the sequence.
+ * What a cell's split-flap shows, or undefined for no flap (the normal cell).
+ * - New game / restart intro: the previous board's face, then the new puzzle's (blank or clue).
+ * - Win: the cell's own cover, then (in the reveal) its ninth of the box's album cover. Box N shows album N.
  */
-const flapFace = (phase: WinPhase | null, i: number, value: number | null): FlapFace | undefined => {
+const flapFace = (
+  intro: Intro | null,
+  phase: WinPhase | null,
+  i: number,
+  value: number | null,
+): FlapFace | undefined => {
+  if (intro) {
+    if (intro.from[i] === null && value === null) return undefined; // empty before and after: nothing to flip
+    return coverFace(intro.phase === "armed" ? intro.from[i] : value);
+  }
   if (!phase || phase === "done" || value === null) return undefined;
-  if (phase !== "reveal") return { src: albumFor(value).cover };
+  if (phase !== "reveal") return coverFace(value);
   return {
     src: albums[boxOf(i)].coverLarge,
     slice: { col: (i % 9) % 3, row: Math.floor(i / 9) % 3 },
@@ -43,20 +56,18 @@ export function Board({ onHover, onPeek }: BoardProps) {
   const hintsOn = useGame((s) => s.hintsOn);
   const selectCell = useGame((s) => s.selectCell);
   const shake = useGame((s) => s.shake);
-  const wave = useGame((s) => s.wave);
+  const waves = useGame((s) => s.waves);
   const winPhase = useGame((s) => s.winPhase);
+  const intro = useGame((s) => s.intro);
 
-  // Drop the wave once its last cover has landed, so waving cells stop sitting above the rest.
-  useEffect(() => {
-    if (!wave) return;
-    const t = window.setTimeout(
-      () => {
-        if (useGame.getState().wave?.id === wave.id) useGame.setState({ wave: null });
-      },
-      Math.max(...wave.delays.values()) + WAVE_RISE_MS,
-    );
-    return () => window.clearTimeout(t);
-  }, [wave]);
+  /** The newest running wave passing through cell i, if any. */
+  const waveAt = (i: number) => {
+    for (let w = waves.length - 1; w >= 0; w--) {
+      const d = waves[w].delays.get(i);
+      if (d !== undefined) return { id: waves[w].id, delay: d };
+    }
+    return undefined;
+  };
 
   const highlighted = useMemo(
     () => (selectedCell === null ? new Set<number>() : highlightedCells(hintsOn ? highlightMode : null, selectedCell)),
@@ -107,7 +118,8 @@ export function Board({ onHover, onPeek }: BoardProps) {
       suppressClick.current = false;
       return;
     }
-    // Tapping the board during the win sequence skips to the end.
+    // Tapping the board during a flap sequence skips to its end.
+    if (intro) return useGame.setState({ intro: null });
     if (winPhase && winPhase !== "done") return useGame.setState({ winPhase: "done" });
     const i = indexFromEvent(e);
     if (i !== null) selectCell(i);
@@ -142,8 +154,8 @@ export function Board({ onHover, onPeek }: BoardProps) {
               selected={selectedCell === i}
               highlighted={highlighted.has(i)}
               shakeId={shake?.cell === i ? shake.id : undefined}
-              wave={wave?.delays.has(i) ? { id: wave.id, delay: wave.delays.get(i)! } : undefined}
-              flap={flapFace(winPhase, i, board[i])}
+              wave={waveAt(i)}
+              flap={flapFace(intro, winPhase, i, board[i])}
               flapDelay={rippleDelay(i)}
             />
           ))}

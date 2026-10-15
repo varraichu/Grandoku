@@ -3,11 +3,11 @@ import "./SplitFlap.css";
 
 // ---- Tunable timings (defaults; the demo page can override them per flip) ----
 /** One whole flip: top flap falls, then bottom flap lands. */
-export const FLIP_MS = 300;
+export const FLIP_MS = 550;
 /** Share of FLIP_MS spent on the top flap falling (the rest is the bottom flap landing). */
 export const TOP_SHARE = 0.45;
 /** How far (degrees) the bottom flap bounces back up after landing. 0 = no settle. */
-export const SETTLE_DEG = 6;
+export const SETTLE_DEG = 4;
 /** Darkness (0-1) of a flap at 90°, to fake shading. */
 export const SHADE_MAX = 0.45;
 
@@ -27,11 +27,15 @@ export interface FlapFace {
 
 const faceKey = (f: FlapFace) => `${f.src}|${f.slice ? `${f.slice.col},${f.slice.row}` : ""}`;
 
-const faceStyle = (f: FlapFace): React.CSSProperties => ({
-  backgroundImage: `url(${f.src})`,
-  backgroundSize: f.slice ? "300% 300%" : "cover",
-  backgroundPosition: f.slice ? `${f.slice.col * 50}% ${f.slice.row * 50}%` : "center",
-});
+/** An empty `src` is a blank face: the cell background shows through. */
+const faceStyle = (f: FlapFace): React.CSSProperties =>
+  !f.src
+    ? {}
+    : {
+        backgroundImage: `url(${f.src})`,
+        backgroundSize: f.slice ? "300% 300%" : "cover",
+        backgroundPosition: f.slice ? `${f.slice.col * 50}% ${f.slice.row * 50}%` : "center",
+      };
 
 const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
