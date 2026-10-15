@@ -10,9 +10,9 @@ export const START_BEAT_MS = 350;
 export const RIPPLE_MS = 85;
 /** Up to this much extra, fixed per cell: real flap boards are never perfectly in step. */
 export const JITTER_MS = 25;
-/** How long the full reveal holds once its last cell has landed, before flipping back. Short so the
- *  board keeps moving: earlier cells have already shown their slice for most of a sweep by then. */
-export const HOLD_MS = 400;
+/** Pause between the last reveal cell landing and the top-left cell flipping back. 0 = the board
+ *  turns straight back the moment the full image completes. */
+export const HOLD_MS = 0;
 /** Pause after the board has flipped back, before the summary appears. */
 export const END_BEAT_MS = 400;
 
