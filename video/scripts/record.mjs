@@ -94,53 +94,83 @@ async function record(name) {
   }
   await sleep(400);
 
-  // 3. Hints: switch on, then step through column → row → box, then place.
-  mark("hints");
+  // Page-side rectangles: one element, or the bounding box of several.
+  const rectOf = (sel) =>
+    g((sel) => {
+      const els = [...document.querySelectorAll(sel)];
+      if (!els.length) return null;
+      const bs = els.map((el) => el.getBoundingClientRect());
+      const x = Math.min(...bs.map((b) => b.left));
+      const y = Math.min(...bs.map((b) => b.top));
+      return { x, y, w: Math.max(...bs.map((b) => b.right)) - x, h: Math.max(...bs.map((b) => b.bottom)) - y };
+    }, sel);
+  // Spotlight keyframes: from time t, the video highlights `rect` (null = no spotlight).
+  const spots = [];
+  const spot = async (sel) => spots.push({ t: Date.now() / 1000 - t0, rect: sel ? await rectOf(sel) : null });
+  const UNIT = ".cell.is-highlighted, .cell.is-selected";
+  const rects = {};
+
+  // 3. Hints: spotlight the Hints button, then each highlighted unit, then the tray, then place.
   {
     const empty = await emptyCells();
     const k = empty[Math.floor(empty.length / 2)];
     await select(k);
-    await sleep(300);
+    await sleep(500);
+    mark("hints");
+    await spot(".tile-hints");
+    await sleep(700);
     await tap("button", "Hints");
     await sleep(900);
+    mark("hintCol");
+    await spot(UNIT);
+    await sleep(1500);
     await tap("radio", "Row");
-    await sleep(900);
+    mark("hintRow");
+    await spot(UNIT);
+    await sleep(1500);
     await tap("radio", "Box");
-    await sleep(900);
+    mark("hintBox");
+    await spot(UNIT);
+    await sleep(1500);
+    mark("hintTray");
+    await spot(".tray");
+    await sleep(1900);
+    await spot(null);
     await page.keyboard.press(String((await state()).solution[k]));
-    await sleep(500);
+    await sleep(700);
     await tap("button", "Hints"); // off again for the rest
     await g(() => window.__g.setState({ selectedCell: null }));
   }
   await sleep(300);
 
-  // 4. Notes: the UI flips upside down (Sweetener). Pencil in a few candidates, peek, flip back.
+  // 4. Notes: the UI flips upside down. Pencil candidates into one cell (album-colour swatches), then peek.
   mark("notes");
   await tap("button", "Notes");
-  await sleep(900);
+  await sleep(1400);
   {
     const s = await state();
     const empty = await emptyCells();
-    for (const k of empty.slice(0, 2)) {
-      await select(k);
-      await sleep(200);
-      const wrong = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((d) => d !== s.solution[k]).slice(0, 2);
-      for (const d of [s.solution[k], ...wrong]) {
-        await page.keyboard.press(String(d));
-        await sleep(220);
-      }
-      await sleep(250);
+    const k = empty[Math.floor(empty.length / 3)];
+    await select(k);
+    await sleep(300);
+    mark("notesType");
+    rects.notesCell = await rectOf(".cell.is-selected");
+    const wrong = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((d) => d !== s.solution[k]).slice(0, 3);
+    for (const d of [s.solution[k], ...wrong].sort()) {
+      await page.keyboard.press(String(d));
+      await sleep(500);
     }
+    await sleep(1000);
     mark("peek");
     await page.keyboard.down("Shift");
-    await sleep(1100);
+    await sleep(2400);
     await page.keyboard.up("Shift");
   }
   await sleep(300);
   await tap("button", "Notes");
   await sleep(900);
 
-  // 5. 7 rings: a couple of wrong covers tick the mistake counter.
+  // 5. Mistakes: a couple of wrong covers tick the mistake counter.
   mark("mistake");
   {
     const s = await state();
@@ -158,7 +188,7 @@ async function record(name) {
   // 6. Tattoos: a quiet beat on the board so the background can be the focus.
   mark("tattoos");
   // Where things sit on screen, so the video can zoom into the ring and a tattoo.
-  const rects = await g(() => {
+  Object.assign(rects, await g(() => {
     const r = (el) => { const b = el.getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height }; };
     return {
       ring: r(document.querySelector(".mistakes")),
@@ -175,8 +205,8 @@ async function record(name) {
         };
       }),
     };
-  });
-  await sleep(2200);
+  }));
+  await sleep(2800);
 
   // 7. Win: jump to one cell left (hidden by a cut), place it, watch the win sequence.
   await g(() => {
@@ -196,7 +226,7 @@ async function record(name) {
   }
   await page.waitForSelector(".win-preview img", { timeout: 30000 });
   mark("summary");
-  await sleep(1800);
+  await sleep(2600);
 
   // 8. Export: save the result image.
   mark("export");
@@ -221,7 +251,7 @@ async function record(name) {
     "-fps_mode", "cfr", "-r", String(FPS), "-vf", `scale=${size.w}:${size.h},format=yuv420p`, "-c:v", "libx264", "-crf", "14", "-preset", "slow", video], { stdio: "inherit" });
   // Frame timestamps and marks are both epoch seconds: shift marks onto the video's clock (first frame = 0).
   const timed = Object.fromEntries(Object.entries(marks).map(([k, v]) => [k, +(v - (first - t0)).toFixed(3)]));
-  fs.writeFileSync(path.join(OUT, `${name}.json`), JSON.stringify({ fps: FPS, width: size.w, height: size.h, duration: frames.at(-1).t - first, marks: timed, rects }, null, 2));
+  fs.writeFileSync(path.join(OUT, `${name}.json`), JSON.stringify({ fps: FPS, width: size.w, height: size.h, duration: frames.at(-1).t - first, marks: timed, rects, spots: spots.map((sp) => ({ ...sp, t: +(sp.t - (first - t0)).toFixed(3) })) }, null, 2));
   fs.rmSync(frameDir, { recursive: true, force: true });
   console.log(name, frames.length, "frames", timed);
 }

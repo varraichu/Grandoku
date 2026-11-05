@@ -1,6 +1,7 @@
 import React from "react";
 import {
   AbsoluteFill,
+  Easing,
   Img,
   interpolate,
   OffthreadVideo,
@@ -9,20 +10,22 @@ import {
   staticFile,
   useCurrentFrame,
   useVideoConfig,
-  Easing,
 } from "remotion";
 import portraitTake from "../public/takes/portrait.json";
 import landscapeTake from "../public/takes/landscape.json";
-import { INTRO_S, SCENES, type Scene } from "./scenes";
+import { INTRO_S, SCENES, sceneLen, type Scene } from "./scenes";
 
 export type Format = "portrait" | "landscape";
 
 type Take = typeof portraitTake;
-const TAKES: Record<Format, Take> = { portrait: portraitTake, landscape: landscapeTake as Take };
+type Rect = { x: number; y: number; w: number; h: number };
+export const TAKES: Record<Format, Take> = { portrait: portraitTake, landscape: landscapeTake as Take };
 
 const BG = "#f2c4d0";
 const INK = "#101820";
 const CREAM = "#eae5d9";
+const PINK = "#dc658d";
+const URL = "grandoku.vercel.app";
 
 const COVERS = [
   "1_Yours_Truly_Alt",
@@ -43,12 +46,16 @@ const LAYOUT = {
 };
 
 const secs = (s: number, fps: number) => Math.round(s * fps);
+const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
+/** A calm ease (no bounce) over `dur` seconds, starting `delay` seconds in. */
+const ease = (frame: number, fps: number, delay: number, dur: number) =>
+  interpolate(frame, [secs(delay, fps), secs(delay + dur, fps)], [0, 1], { ...clamp, easing: Easing.inOut(Easing.cubic) });
 
 /** Scene start/length in frames, laid end to end after the intro. */
-const timeline = (fps: number) => {
+const timeline = (take: Take, fps: number) => {
   let from = secs(INTRO_S, fps);
   return SCENES.map((scene) => {
-    const len = secs(scene.len, fps);
+    const len = secs(sceneLen(scene, take.marks), fps);
     const item = { scene, from, len };
     from += len;
     return item;
@@ -57,29 +64,34 @@ const timeline = (fps: number) => {
 
 export const Demo: React.FC<{ format: Format }> = ({ format }) => {
   const { fps } = useVideoConfig();
-  const items = timeline(fps);
+  const items = timeline(TAKES[format], fps);
   const scenesStart = items[0].from;
   const scenesEnd = items.at(-1)!.from + items.at(-1)!.len;
 
   // Consecutive scenes sharing a caption get one caption, so it doesn't re-animate on every cut.
-  const captions: { text: string; from: number; len: number; ring: boolean }[] = [];
+  const captions: { text: string; from: number; len: number }[] = [];
   for (const { scene, from, len } of items) {
     const last = captions.at(-1);
     if (last && last.text === scene.caption) last.len += len;
-    else captions.push({ text: scene.caption, from, len, ring: scene.effect === "ringZoom" });
+    else captions.push({ text: scene.caption, from, len });
   }
 
   return (
-    <AbsoluteFill style={{ background: `radial-gradient(circle at 50% 35%, #f8dde4 0%, ${BG} 70%)`, fontFamily: "Helvetica Neue, Helvetica, Arial, sans-serif" }}>
-      <Sequence durationInFrames={scenesStart + 6}>
+    <AbsoluteFill
+      style={{
+        background: `radial-gradient(circle at 50% 35%, #f8dde4 0%, ${BG} 70%)`,
+        fontFamily: "Helvetica Neue, Helvetica, Arial, sans-serif",
+      }}
+    >
+      <Sequence durationInFrames={scenesStart + 10}>
         <Intro format={format} />
       </Sequence>
-      <Sequence from={scenesStart} durationInFrames={scenesEnd - scenesStart + 6}>
+      <Sequence from={scenesStart} durationInFrames={scenesEnd - scenesStart + 12}>
         <GameWindow format={format} items={items.map((i) => ({ ...i, from: i.from - scenesStart }))} />
       </Sequence>
       {captions.map((c) => (
         <Sequence key={c.from} from={c.from} durationInFrames={c.len}>
-          <Caption format={format} text={c.text} ring={c.ring} />
+          <Caption format={format} text={c.text} />
         </Sequence>
       ))}
       <Sequence from={scenesEnd}>
@@ -98,11 +110,9 @@ const Intro: React.FC<{ format: Format }> = ({ format }) => {
   const grid = portrait ? 600 : 560;
   const gap = 14;
   const cell = (grid - gap * 2) / 3;
-  const logoIn = spring({ frame: frame - 12, fps, config: { damping: 14 } });
-  const out = interpolate(frame, [secs(INTRO_S, fps) - 6, secs(INTRO_S, fps) + 4], [1, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  const logoIn = ease(frame, fps, 0.5, 0.6);
+  const out = 1 - ease(frame, fps, INTRO_S - 0.25, 0.5);
+
   return (
     <AbsoluteFill
       style={{
@@ -111,12 +121,12 @@ const Intro: React.FC<{ format: Format }> = ({ format }) => {
         justifyContent: "center",
         gap: portrait ? 110 : 120,
         opacity: out,
-        transform: `scale(${interpolate(out, [0, 1], [0.94, 1])})`,
+        transform: `scale(${interpolate(out, [0, 1], [0.95, 1])})`,
       }}
     >
       <div style={{ display: "grid", gridTemplateColumns: `repeat(3, ${cell}px)`, gap }}>
         {COVERS.map((src, i) => {
-          const s = spring({ frame: frame - i * 2, fps, config: { damping: 12, mass: 0.6 } });
+          const s = spring({ frame: frame - i * 3, fps, config: { damping: 16, mass: 0.8 } });
           return (
             <Img
               key={src}
@@ -127,7 +137,7 @@ const Intro: React.FC<{ format: Format }> = ({ format }) => {
                 borderRadius: 14,
                 objectFit: "cover",
                 boxShadow: "0 10px 24px rgba(16,24,32,0.25)",
-                transform: `scale(${s}) rotate(${interpolate(s, [0, 1], [i % 2 ? 14 : -14, 0])}deg)`,
+                transform: `scale(${s}) rotate(${interpolate(s, [0, 1], [i % 2 ? 10 : -10, 0])}deg)`,
               }}
             />
           );
@@ -138,7 +148,7 @@ const Intro: React.FC<{ format: Format }> = ({ format }) => {
         style={{
           width: portrait ? 820 : 760,
           opacity: logoIn,
-          transform: `translateY(${interpolate(logoIn, [0, 1], [60, 0])}px)`,
+          transform: `translateY(${interpolate(logoIn, [0, 1], [50, 0])}px)`,
         }}
       />
     </AbsoluteFill>
@@ -154,9 +164,9 @@ const GameWindow: React.FC<{ format: Format; items: Item[] }> = ({ format, items
   const { fps } = useVideoConfig();
   const take = TAKES[format];
   const { scale, x, y } = LAYOUT[format];
-  const enter = spring({ frame, fps, config: { damping: 16 } });
+  const enter = ease(frame, fps, 0, 0.7);
   const end = items.at(-1)!.from + items.at(-1)!.len;
-  const exit = interpolate(frame, [end - 4, end + 6], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const exit = interpolate(frame, [end - 6, end + 10], [1, 0], clamp);
 
   return (
     <div
@@ -171,7 +181,7 @@ const GameWindow: React.FC<{ format: Format; items: Item[] }> = ({ format, items
         background: CREAM,
         boxShadow: "0 30px 80px rgba(16,24,32,0.28), 0 0 0 6px rgba(255,255,255,0.7)",
         opacity: enter * exit,
-        transform: `translateY(${interpolate(enter, [0, 1], [160, 0])}px) scale(${interpolate(exit, [0, 1], [0.94, 1])})`,
+        transform: `translateY(${interpolate(enter, [0, 1], [140, 0])}px) scale(${interpolate(exit, [0, 1], [0.95, 1])})`,
       }}
     >
       <div style={{ width: take.width, height: take.height, transform: `scale(${scale})`, transformOrigin: "0 0" }}>
@@ -185,6 +195,8 @@ const GameWindow: React.FC<{ format: Format; items: Item[] }> = ({ format, items
   );
 };
 
+const center = (r: Rect) => [r.x + r.w / 2, r.y + r.h / 2] as const;
+
 /** One scene: the take trimmed to its moment, plus any zoom or overlay. */
 const Shot: React.FC<{ take: Take; format: Format; scene: Scene }> = ({ take, format, scene }) => {
   const frame = useCurrentFrame();
@@ -192,8 +204,9 @@ const Shot: React.FC<{ take: Take; format: Format; scene: Scene }> = ({ take, fo
   const start = take.marks[scene.at] + scene.offset;
   const W = take.width;
   const H = take.height;
+  const portrait = format === "portrait";
 
-  // Zoom toward a point, keeping the view inside the frame.
+  // Zoom toward a point (p: 0 = full view, 1 = zoomed), keeping the view inside the frame.
   let transform = "none";
   const zoomTo = (cx: number, cy: number, z: number, p: number) => {
     const s = interpolate(p, [0, 1], [1, z]);
@@ -201,22 +214,59 @@ const Shot: React.FC<{ take: Take; format: Format; scene: Scene }> = ({ take, fo
     const fy = Math.min(Math.max(interpolate(p, [0, 1], [H / 2, cy]), H / (2 * s)), H - H / (2 * s));
     transform = `translate(${W / 2}px, ${H / 2}px) scale(${s}) translate(${-fx}px, ${-fy}px)`;
   };
-  if (scene.effect === "ringZoom") {
-    const r = take.rects.ring;
-    const p = spring({ frame: frame - secs(0.55, fps), fps, config: { damping: 18 } });
-    zoomTo(r.x + r.w / 2, r.y + r.h / 2, format === "portrait" ? 2.1 : 3, p);
-  }
-  if (scene.effect === "tattoos") {
-    const p = interpolate(frame, [0, secs(scene.len, fps)], [0, 1], { easing: Easing.out(Easing.quad) });
-    zoomTo(W / 2, H / 2, 1.06, p);
-  }
+  const cellZoom = portrait ? 3.4 : 4;
+  if (scene.effect === "ringZoom") zoomTo(...center(take.rects.ring), portrait ? 2.1 : 3, ease(frame, fps, 0.8, 0.8));
+  if (scene.effect === "cellZoomIn") zoomTo(...center(take.rects.notesCell), cellZoom, ease(frame, fps, 0, 0.9));
+  if (scene.effect === "cellZoomOut") zoomTo(...center(take.rects.notesCell), cellZoom, 1 - ease(frame, fps, 0, 0.5));
+  if (scene.effect === "tattoos") zoomTo(W / 2, H / 2, 1.06, ease(frame, fps, 0, 2.8));
 
   return (
     <AbsoluteFill style={{ transform, transformOrigin: "0 0" }}>
       <OffthreadVideo src={staticFile(`takes/${format}.mp4`)} trimBefore={secs(start, fps)} muted />
+      {scene.effect === "spotlight" && <Spotlight take={take} start={start} />}
       {scene.effect === "tattoos" && <TattooHighlight take={take} />}
       {scene.effect === "result" && <ResultCard format={format} take={take} />}
     </AbsoluteFill>
+  );
+};
+
+/**
+ * Dims everything but the area the recorder marked (the Hints button, then each highlighted
+ * column / row / box, then the tray), gliding from one area to the next.
+ */
+const Spotlight: React.FC<{ take: Take; start: number }> = ({ take, start }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const t = start + frame / fps; // time in the take
+  const spots = take.spots as { t: number; rect: Rect | null }[];
+  const i = spots.findLastIndex((s) => s.t <= t);
+  if (i < 0) return null;
+  const GLIDE = 0.45;
+  const p = Easing.inOut(Easing.cubic)(Math.min(1, (t - spots[i].t) / GLIDE));
+  const cur = spots[i].rect;
+  const prev = i > 0 ? spots[i - 1].rect : null;
+  const from = prev ?? cur;
+  const to = cur ?? prev;
+  if (!from || !to) return null;
+  const lerp = (a: number, b: number) => a + (b - a) * p;
+  const pad = 10;
+  const r = { x: lerp(from.x, to.x) - pad, y: lerp(from.y, to.y) - pad, w: lerp(from.w, to.w) + pad * 2, h: lerp(from.h, to.h) + pad * 2 };
+  // Fade in with the first spot, out when the spotlight ends (rect null).
+  const opacity = cur === null ? 1 - p : prev === null ? p : 1;
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: r.x,
+        top: r.y,
+        width: r.w,
+        height: r.h,
+        borderRadius: 26,
+        border: `6px solid ${PINK}`,
+        boxShadow: `0 0 0 4000px rgba(16,24,32,0.5), 0 0 40px ${PINK}`,
+        opacity,
+      }}
+    />
   );
 };
 
@@ -224,12 +274,12 @@ const Shot: React.FC<{ take: Take; format: Format; scene: Scene }> = ({ take, fo
 const TattooHighlight: React.FC<{ take: Take }> = ({ take }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const wash = interpolate(frame, [0, 8], [0, 0.6], { extrapolateRight: "clamp" });
+  const wash = ease(frame, fps, 0, 0.5) * 0.6;
   return (
     <AbsoluteFill>
       <AbsoluteFill style={{ background: CREAM, opacity: wash }} />
       {take.rects.tattoos.map((t, i) => {
-        const s = spring({ frame: frame - 5 - i * 2, fps, config: { damping: 9, mass: 0.6 } });
+        const s = ease(frame, fps, 0.3 + i * 0.12, 0.5);
         return (
           <Img
             key={t.src}
@@ -241,7 +291,7 @@ const TattooHighlight: React.FC<{ take: Take }> = ({ take }) => {
               width: t.w,
               height: t.h,
               opacity: interpolate(s, [0, 1], [0.2, 1]),
-              transform: `translate(-50%, -50%) rotate(${t.rotate}deg) scale(${interpolate(s, [0, 1], [1, 1.25])})`,
+              transform: `translate(-50%, -50%) rotate(${t.rotate}deg) scale(${interpolate(s, [0, 1], [1, 1.2])})`,
             }}
           />
         );
@@ -254,7 +304,7 @@ const TattooHighlight: React.FC<{ take: Take }> = ({ take }) => {
 const ResultCard: React.FC<{ format: Format; take: Take }> = ({ format, take }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const s = spring({ frame: frame - 3, fps, config: { damping: 15 } });
+  const s = ease(frame, fps, 0.1, 0.7);
   const h = take.height * (format === "portrait" ? 0.66 : 0.84);
   return (
     <AbsoluteFill style={{ alignItems: "center", justifyContent: "center" }}>
@@ -266,7 +316,7 @@ const ResultCard: React.FC<{ format: Format; take: Take }> = ({ format, take }) 
           borderRadius: 28,
           boxShadow: "0 30px 90px rgba(0,0,0,0.45)",
           opacity: s,
-          transform: `translateY(${interpolate(s, [0, 1], [220, 0])}px) scale(${interpolate(s, [0, 1], [0.7, 1])}) rotate(${interpolate(s, [0, 1], [-6, -2])}deg)`,
+          transform: `translateY(${interpolate(s, [0, 1], [200, 0])}px) scale(${interpolate(s, [0, 1], [0.75, 1])}) rotate(${interpolate(s, [0, 1], [-6, -2])}deg)`,
         }}
       />
     </AbsoluteFill>
@@ -275,11 +325,11 @@ const ResultCard: React.FC<{ format: Format; take: Take }> = ({ format, take }) 
 
 // ---------- Caption ----------
 
-const Caption: React.FC<{ format: Format; text: string; ring: boolean }> = ({ format, text, ring }) => {
+const Caption: React.FC<{ format: Format; text: string }> = ({ format, text }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const c = LAYOUT[format].caption;
-  const inP = spring({ frame, fps, config: { damping: 16 } });
+  const inP = ease(frame, fps, 0, 0.45);
   return (
     <div
       style={{
@@ -298,20 +348,12 @@ const Caption: React.FC<{ format: Format; text: string; ring: boolean }> = ({ fo
         fontWeight: 800,
         letterSpacing: -1.5,
         lineHeight: 1.08,
-        whiteSpace: "pre-line",
+        textWrap: "balance",
         opacity: inP,
-        transform: `translateY(${interpolate(inP, [0, 1], [36, 0])}px)`,
+        transform: `translateY(${interpolate(inP, [0, 1], [30, 0])}px)`,
       }}
     >
-      <span>
-        {format === "portrait" ? text : text.replace("\n", " ")}
-        {ring && (
-          <Img
-            src={staticFile("Ring.svg")}
-            style={{ height: c.size * 0.95, marginLeft: 16, verticalAlign: "-0.12em" }}
-          />
-        )}
-      </span>
+      {text}
     </div>
   );
 };
@@ -322,21 +364,46 @@ const Outro: React.FC<{ format: Format }> = ({ format }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const portrait = format === "portrait";
-  const logo = spring({ frame: frame - 4, fps, config: { damping: 13 } });
-  const size = portrait ? 96 : 104;
+  const logo = ease(frame, fps, 0.1, 0.7);
+  const link = ease(frame, fps, 0.6, 0.6);
+  const size = portrait ? 96 : 92;
   return (
-    <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", flexDirection: "column", gap: portrait ? 90 : 70 }}>
+    <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", flexDirection: "column", gap: portrait ? 80 : 56 }}>
       <Img
         src={staticFile("grandoku.svg")}
         style={{
-          width: portrait ? 900 : 980,
+          width: portrait ? 900 : 900,
           opacity: logo,
-          transform: `scale(${interpolate(logo, [0, 1], [0.8, 1])})`,
+          transform: `scale(${interpolate(logo, [0, 1], [0.85, 1])})`,
         }}
       />
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 22,
+          opacity: link,
+          transform: `translateY(${interpolate(link, [0, 1], [30, 0])}px)`,
+        }}
+      >
+        {portrait && <div style={{ fontSize: 84, fontWeight: 800, color: INK, letterSpacing: -2 }}>Link in bio</div>}
+        <div
+          style={{
+            fontSize: portrait ? 46 : 54,
+            fontWeight: 700,
+            color: CREAM,
+            background: INK,
+            padding: portrait ? "16px 36px" : "18px 44px",
+            borderRadius: 999,
+          }}
+        >
+          {URL}
+        </div>
+      </div>
       <div style={{ display: "flex", gap: 12 }}>
         {COVERS.map((src, i) => {
-          const s = spring({ frame: frame - 10 - i * 1.5, fps, config: { damping: 12, mass: 0.5 } });
+          const s = ease(frame, fps, 0.9 + i * 0.06, 0.4);
           return (
             <Img
               key={src}
@@ -348,7 +415,7 @@ const Outro: React.FC<{ format: Format }> = ({ format }) => {
                 objectFit: "cover",
                 boxShadow: "0 8px 20px rgba(16,24,32,0.22)",
                 opacity: s,
-                transform: `translateY(${interpolate(s, [0, 1], [40, 0])}px)`,
+                transform: `translateY(${interpolate(s, [0, 1], [30, 0])}px)`,
               }}
             />
           );
