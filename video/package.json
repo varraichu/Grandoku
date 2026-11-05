@@ -1,0 +1,22 @@
+{
+  "name": "grandoku-demo-video",
+  "version": "1.0.0",
+  "scripts": {
+    "record": "node scripts/record.mjs",
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts Vertical out/grandoku-vertical.mp4 --timeout=120000 --crf=16 && remotion render src/index.ts Landscape out/grandoku-landscape.mp4 --timeout=120000 --crf=16"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "playwright": "^1.64.1",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.540",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "remotion": "^4.0.540"
+  },
+  "private": true
+}
