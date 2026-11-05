@@ -156,7 +156,8 @@ async function record(name) {
     mark("notesType");
     rects.notesCell = await rectOf(".cell.is-selected");
     const wrong = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((d) => d !== s.solution[k]).slice(0, 3);
-    for (const d of [s.solution[k], ...wrong].sort()) {
+    rects.noteDigits = [s.solution[k], ...wrong].sort();
+    for (const d of rects.noteDigits) {
       await page.keyboard.press(String(d));
       await sleep(500);
     }

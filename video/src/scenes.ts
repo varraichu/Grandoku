@@ -19,7 +19,18 @@ export type Mark =
   | "summary"
   | "export";
 
-export type Effect = "spotlight" | "cellZoom" | "ringZoom" | "tattoos" | "result";
+export type Effect =
+  | "spotlight" // dim all but the area being explained; Column / Row / Box pop in on cue
+  | "cellZoom" // zoom into the noted cell, then back out
+  | "cellZoomIn" // zoom in and stay (ends zoomed)
+  | "noteLines" // (freeze) held zoom, lines from each note colour to its album
+  | "cellZoomOut" // start zoomed, ease out
+  | "ringZoom"
+  | "ringLabel" // a label pointing at the mistakes counter
+  | "ringBubble" // magnifier bubble over the mistakes counter
+  | "cellBubble" // magnifier bubble over the noted cell
+  | "tattoos"
+  | "result";
 
 export interface Scene {
   at: Mark;
@@ -28,8 +39,13 @@ export interface Scene {
   until?: Mark;
   untilOffset?: number;
   rate?: number;
+  /** Shown at the top while the scene plays ("" = none). */
   caption: string;
   effect?: Effect;
+  /** Show the caption as a title card first: a full card, or a big title that shrinks into the caption. */
+  card?: "plain" | "shrink";
+  /** Freeze on the scene's first frame (overlays still animate). */
+  still?: boolean;
 }
 
 export interface Variant {
@@ -79,10 +95,52 @@ const FAST_SCENES: Scene[] = [
   { at: "export", offset: 0.3, len: 1.6, caption: SAVE, effect: "result" },
 ];
 
+// ---------- Style tests: short clips, each trying one idea on the scene it suits ----------
+
+const HINT_SCENES = (card: "plain" | "shrink"): Scene[] => [
+  { at: "hints", offset: -0.1, until: "hintCol", caption: "Stuck? Turn on hints", effect: "spotlight", card },
+  { at: "hintCol", offset: 0, until: "hintTray", caption: HINTS, effect: "spotlight", card },
+  { at: "hintTray", offset: 0, len: 2.1, caption: "Covers already used there fade out", effect: "spotlight", card },
+];
+const NOTES_FREEZE = 2.1; // seconds after notesType: all four notes are in
+
+const TESTS = {
+  // 1a. Caption card, then the clip (no text over gameplay).
+  cardPlain: HINT_SCENES("plain"),
+  // 1b. Big title that shrinks into the caption as the clip starts.
+  cardShrink: HINT_SCENES("shrink"),
+  // 2. Freeze on the zoomed cell and connect each note colour to its album.
+  freeze: [
+    { at: "notesType", offset: -0.1, len: NOTES_FREEZE + 0.1, caption: COLOURS, effect: "cellZoomIn" },
+    { at: "notesType", offset: NOTES_FREEZE, len: 3.0, caption: COLOURS, effect: "noteLines", still: true },
+    { at: "notesType", offset: NOTES_FREEZE, until: "peek", caption: COLOURS, effect: "cellZoomOut" },
+    { at: "peek", offset: 0, len: 2.2, caption: COLOURS },
+  ],
+  // 3. The words sit on the game, pointing at what they describe.
+  label: [{ at: "mistake", offset: 0.05, len: 3.4, caption: "", effect: "ringLabel" }],
+  // 4. A magnifier bubble instead of zooming the whole view.
+  magnifier: [
+    { at: "mistake", offset: 0.05, len: 3.0, caption: "7 mistakes and it's game over", effect: "ringBubble" },
+    { at: "notesType", offset: -0.1, until: "peek", caption: COLOURS, effect: "cellBubble" },
+  ],
+  // 5. Speed ramp: rush the lead-up, slow down for the big reveal, rush the flip back.
+  speedRamp: [
+    { at: "win", offset: -0.2, len: 2.0, rate: 2, caption: "Solve it and the whole board flips" },
+    { at: "win", offset: 1.8, len: 2.6, rate: 0.75, caption: "Solve it and the whole board flips" },
+    { at: "win", offset: 4.4, until: "summary", untilOffset: 0.4, rate: 2, caption: "Solve it and the whole board flips" },
+  ],
+} satisfies Record<string, Scene[]>;
+
 export const VARIANTS = {
   full: { scenes: SCENES, intro: 1.8, outro: 3.2, pace: 1 },
   fast: { scenes: FAST_SCENES, intro: 1.1, outro: 2.3, pace: 0.6 },
+  ...(Object.fromEntries(
+    Object.entries(TESTS).map(([k, scenes]) => [`test-${k}`, { scenes, intro: 0, outro: 0, pace: 1 }]),
+  ) as Record<`test-${keyof typeof TESTS}`, Variant>),
 } satisfies Record<string, Variant>;
+
+/** Seconds a title card holds before its scene. */
+export const CARD_S = { plain: 1.0, shrink: 0.8 };
 
 export type VariantName = keyof typeof VARIANTS;
 
@@ -95,4 +153,5 @@ export const takeLen = (s: Scene, marks: Marks) =>
 /** Seconds the scene lasts in the video (after any speed-up). */
 export const sceneLen = (s: Scene, marks: Marks) => takeLen(s, marks) / (s.rate ?? 1);
 
-export const totalSeconds = (v: Variant, marks: Marks) => v.intro + v.scenes.reduce((t, s) => t + sceneLen(s, marks), 0) + v.outro;
+export const totalSeconds = (v: Variant, marks: Marks) =>
+  v.intro + v.scenes.reduce((t, s) => t + sceneLen(s, marks) + (s.card ? CARD_S[s.card] * v.pace : 0), 0) + v.outro;

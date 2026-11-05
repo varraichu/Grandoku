@@ -12,6 +12,13 @@ const VIDEOS = [
   { id: "Landscape", format: "landscape", variant: "full" },
   { id: "Vertical-Fast", format: "portrait", variant: "fast" },
   { id: "Landscape-Fast", format: "landscape", variant: "fast" },
+  // Style tests (vertical only).
+  { id: "Test-1a-CardPlain", format: "portrait", variant: "test-cardPlain" },
+  { id: "Test-1b-CardShrink", format: "portrait", variant: "test-cardShrink" },
+  { id: "Test-2-Freeze", format: "portrait", variant: "test-freeze" },
+  { id: "Test-3-Label", format: "portrait", variant: "test-label" },
+  { id: "Test-4-Magnifier", format: "portrait", variant: "test-magnifier" },
+  { id: "Test-5-SpeedRamp", format: "portrait", variant: "test-speedRamp" },
 ] as const;
 
 export const RemotionRoot = () => (
