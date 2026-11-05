@@ -1,6 +1,6 @@
 # Grandoku demo video
 
-A promo of the game, made with [Remotion](https://remotion.dev) (videos written as React). Cuts, each vertical 9:16 and landscape 16:9: v1 full (~42s) and fast (~26s) with captions over the gameplay, and v2 full (~51s) and fast (~40s, sped up only between key moments) with a title card per feature, labels on the game and a freeze-frame for note colours. v3 (~21s) is a creator-style "look what I made" cut: full-screen gameplay, casual captions, opens on the win reveal. Style test clips live under `out/tests/`. Silent, so music can be added when posting.
+A promo of the game, made with [Remotion](https://remotion.dev) (videos written as React). Cuts, each vertical 9:16 and landscape 16:9: v1 full (~42s) and fast (~26s) with captions over the gameplay, and v2 full (~51s) and fast (~40s, sped up only between key moments) with a title card per feature, labels on the game and a freeze-frame for note colours. v3 (~26s) is a creator-style "look what I made" cut: casual captions over the game, opens on the win reveal, paced for an optional voice-over. Style test clips live under `out/tests/`. Silent, so music can be added when posting.
 
 ## How it works
 

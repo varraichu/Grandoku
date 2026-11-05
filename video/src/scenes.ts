@@ -66,8 +66,10 @@ export interface Variant {
   spotLabels?: (string | null)[];
   /** Centre the game window vertically (for cuts with no caption above it). */
   centered?: boolean;
-  /** "creator": full-screen gameplay, casual caption boxes, a zoom bump on every cut. */
+  /** "creator": casual caption boxes over the game instead of captions above it. */
   look?: "creator";
+  /** Size of the game window relative to the take (default 0.8). */
+  windowScale?: number;
 }
 
 const ALBUMS = "Sudoku, but the numbers are Ariana's albums";
@@ -198,28 +200,28 @@ const V2_FAST_SCENES: Scene[] = [
 ];
 const V2_LABELS = [null, "Column", "Row", "Box", "Already used", null];
 
-// ---------- v3: someone showing off a game they built (~20s) ----------
+// ---------- v3: someone showing off a game they built (~25s) ----------
 
 const V3_SCENES: Scene[] = [
   // Hook: open on the big reveal.
-  { at: "win", offset: 1.8, len: 2.4, caption: "I spent way too long making this" },
-  { at: "flipIn", offset: 0.05, len: 1.5, rate: 1.2, caption: "I made sudoku, but the numbers are Ariana's albums" },
-  { at: "play", offset: 0, len: 1.2, rate: 1.4, caption: "I made sudoku, but the numbers are Ariana's albums" },
+  { at: "win", offset: 1.8, len: 2.88, caption: "I spent way too long making this" },
+  { at: "flipIn", offset: 0.05, len: 1.8, rate: 1.0, caption: "I made sudoku, but the numbers are Ariana's albums" },
+  { at: "play", offset: 0, len: 1.44, rate: 1.15, caption: "I made sudoku, but the numbers are Ariana's albums" },
   // Jump cuts through the three hint areas.
-  { at: "hintCol", offset: 0, len: 0.8, caption: "Hints if you're stuck" },
-  { at: "hintRow", offset: 0, len: 0.8, caption: "Hints if you're stuck" },
-  { at: "hintBox", offset: 0, len: 0.9, caption: "Hints if you're stuck" },
-  { at: "notes", offset: 0.15, len: 1.3, caption: "Notes mode flips everything upside down" },
-  { at: "notesType", offset: -0.1, len: NOTES_FREEZE + 0.1, rate: 1.6, caption: "Each note is an album's colour", effect: "cellZoomIn", captionAt: { portrait: "top", landscape: "top" } },
-  { at: "notesType", offset: NOTES_FREEZE, len: 2.5, caption: "Each note is an album's colour", effect: "noteLines", still: true, captionAt: { portrait: "top", landscape: "top" } },
-  { at: "mistake", offset: 0.05, len: 2.0, rate: 1.1, caption: "7 mistakes and you're out. Yes, that's a reference", effect: "ringZoom", captionAt: { portrait: "top" } },
-  { at: "tattoos", offset: 0.1, len: 2.0, caption: "Her tattoos are hidden in the background", effect: "tattoos" },
-  { at: "summary", offset: 0.4, len: 1.0, caption: "And you can share your score" },
-  { at: "export", offset: 0.3, len: 1.5, caption: "And you can share your score", effect: "result" },
+  { at: "hintCol", offset: 0, len: 0.96, caption: "Hints if you're stuck" },
+  { at: "hintRow", offset: 0, len: 0.96, caption: "Hints if you're stuck" },
+  { at: "hintBox", offset: 0, len: 1.08, caption: "Hints if you're stuck" },
+  { at: "notes", offset: 0.15, len: 1.56, caption: "Notes mode flips everything upside down" },
+  { at: "notesType", offset: -0.1, len: NOTES_FREEZE + 0.1, rate: 1.3, caption: "Each note is an album's colour", effect: "cellZoomIn", captionAt: { portrait: "top", landscape: "top" } },
+  { at: "notesType", offset: NOTES_FREEZE, len: 3.0, caption: "Each note is an album's colour", effect: "noteLines", still: true, captionAt: { portrait: "top", landscape: "top" } },
+  { at: "mistake", offset: 0.05, len: 2.4, rate: 1.0, caption: "7 mistakes and you're out. Yes, that's a reference", effect: "ringZoom", captionAt: { portrait: "top" } },
+  { at: "tattoos", offset: 0.1, len: 2.4, caption: "Her tattoos are hidden in the background", effect: "tattoos" },
+  { at: "summary", offset: 0.4, len: 1.2, caption: "And you can share your score" },
+  { at: "export", offset: 0.3, len: 1.8, caption: "And you can share your score", effect: "result" },
   {
     at: "export",
     offset: 1.8,
-    len: 2.2,
+    len: 2.64,
     caption: "Link in bio. What should I add next?",
     captionLandscape: "grandoku.vercel.app. What should I add next?",
     effect: "resultHeld",
@@ -231,7 +233,7 @@ export const VARIANTS = {
   full: { scenes: SCENES, intro: 1.8, outro: 3.2, pace: 1 },
   fast: { scenes: FAST_SCENES, intro: 1.1, outro: 2.3, pace: 0.6 },
   v2: { scenes: V2_SCENES, intro: 1.8, outro: 3.2, pace: 1, spotLabels: V2_LABELS, centered: true },
-  v3: { scenes: V3_SCENES, intro: 0, outro: 0, pace: 0.75, look: "creator" },
+  v3: { scenes: V3_SCENES, intro: 0, outro: 0, pace: 0.9, look: "creator", centered: true, windowScale: 0.9 },
   "v2-fast": { scenes: V2_FAST_SCENES, intro: 1.3, outro: 2.6, pace: 0.8, spotLabels: V2_LABELS, centered: true },
   ...(Object.fromEntries(
     Object.entries(TESTS).map(([k, scenes]) => [`test-${k}`, { scenes, intro: 0, outro: 0, pace: 1 }]),

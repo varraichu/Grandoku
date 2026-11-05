@@ -207,15 +207,15 @@ const GameWindow: React.FC<{ format: Format; items: Item[] }> = ({ format, items
   const { fps } = useVideoConfig();
   const e = useEase();
   const take = TAKES[format];
-  const { centered, look } = useContext(VariantCtx);
-  const { height } = useVideoConfig();
-  const fullBleed = look === "creator"; // the gameplay is the whole video, like a screen recording
-  const scale = fullBleed ? 1 : LAYOUT[format].scale;
-  const x = fullBleed ? 0 : LAYOUT[format].x;
-  const y = fullBleed ? 0 : centered ? (height - take.height * scale) / 2 : LAYOUT[format].y;
-  const enter = fullBleed ? 1 : e(0, 0.7);
+  const { centered, windowScale, intro } = useContext(VariantCtx);
+  const { width, height } = useVideoConfig();
+  const scale = windowScale ?? LAYOUT[format].scale;
+  const x = (width - take.width * scale) / 2;
+  const y = centered ? (height - take.height * scale) / 2 : LAYOUT[format].y;
+  // With no intro the video opens straight on the game, so it's already in place.
+  const enter = intro > 0 ? e(0, 0.7) : 1;
   const end = items.at(-1)!.from + items.at(-1)!.len;
-  const exit = fullBleed ? 1 : interpolate(frame, [end - 6, end + 10], [1, 0], clamp);
+  const exit = interpolate(frame, [end - 6, end + 10], [1, 0], clamp);
 
   return (
     <div
@@ -225,10 +225,10 @@ const GameWindow: React.FC<{ format: Format; items: Item[] }> = ({ format, items
         top: y,
         width: take.width * scale,
         height: take.height * scale,
-        borderRadius: fullBleed ? 0 : 40,
+        borderRadius: 40,
         overflow: "hidden",
         background: CREAM,
-        boxShadow: fullBleed ? "none" : "0 30px 80px rgba(16,24,32,0.28), 0 0 0 6px rgba(255,255,255,0.7)",
+        boxShadow: "0 30px 80px rgba(16,24,32,0.28), 0 0 0 6px rgba(255,255,255,0.7)",
         opacity: enter * exit,
         transform: `translateY(${interpolate(enter, [0, 1], [140, 0])}px) scale(${interpolate(exit, [0, 1], [0.95, 1])})`,
       }}
@@ -290,11 +290,8 @@ const Shot: React.FC<{ take: Take; format: Format; scene: Scene }> = ({ take, fo
   if (scene.effect === "tattoos") zoomTo(W / 2, H / 2, 1.06, e(0, len / pace));
 
   const video = <TakeVideo format={format} start={start} rate={rate} />;
-  // Creator look: a small zoom bump on every cut.
-  const { look } = useContext(VariantCtx);
-  const punch = look === "creator" ? 1 + 0.045 * (1 - e(0, 0.3)) : 1;
   return (
-    <AbsoluteFill style={{ transform: `scale(${punch})` }}>
+    <AbsoluteFill>
       <AbsoluteFill style={{ transform, transformOrigin: "0 0" }}>
         {scene.still ? <Freeze frame={0}>{video}</Freeze> : video}
         {scene.effect === "spotlight" && <Spotlight take={take} start={start} rate={rate} />}
