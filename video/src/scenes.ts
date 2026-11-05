@@ -27,6 +27,7 @@ export type Effect =
   | "cellZoomOut" // start zoomed, ease out
   | "ringZoom"
   | "ringLabel" // a label pointing at the mistakes counter
+  | "flipTag" // a label pointing at the upside-down title
   | "ringBubble" // magnifier bubble over the mistakes counter
   | "cellBubble" // magnifier bubble over the noted cell
   | "tattoos"
@@ -54,6 +55,8 @@ export interface Variant {
   outro: number;
   /** Multiplies every animation's timing (zooms, captions, overlays): below 1 is snappier. */
   pace: number;
+  /** Words popped beside each hint spotlight, in the recorder's order: button, column, row, box, tray. */
+  spotLabels?: (string | null)[];
 }
 
 const ALBUMS = "Sudoku, but the numbers are Ariana's albums";
@@ -131,9 +134,36 @@ const TESTS = {
   ],
 } satisfies Record<string, Scene[]>;
 
+// ---------- v2: a title card per feature, details as labels on the game, no text over clips ----------
+
+const v2Scenes = (fast: boolean): Scene[] => {
+  // Fast cut: shorter holds and sped-up gameplay; `f(full, quick)` picks per cut.
+  const f = <T,>(full: T, quick: T) => (fast ? quick : full);
+  return [
+    { at: "flipIn", offset: 0.05, len: f(2.2, 1.6), rate: f(1, 1.2), caption: ALBUMS, card: "plain" },
+    { at: "play", offset: 0, len: f(1.8, 1.6), rate: f(1, 1.5), caption: "" },
+    { at: "hints", offset: -0.1, until: "hintCol", rate: f(1, 1.3), caption: "Stuck? Turn on hints", card: "plain", effect: "spotlight" },
+    { at: "hintCol", offset: 0, until: "hintTray", rate: f(1, 1.8), caption: "", effect: "spotlight" },
+    { at: "hintTray", offset: 0, len: f(2.1, 1.6), rate: f(1, 1.2), caption: "", effect: "spotlight" },
+    { at: "notes", offset: -0.3, until: "notesType", untilOffset: -0.1, rate: f(1, 1.3), caption: "Notes mode", card: "plain", effect: "flipTag" },
+    { at: "notesType", offset: -0.1, len: NOTES_FREEZE + 0.1, rate: f(1, 1.4), caption: "", effect: "cellZoomIn" },
+    { at: "notesType", offset: NOTES_FREEZE, len: f(3.4, 2.6), caption: "", effect: "noteLines", still: true },
+    { at: "notesType", offset: NOTES_FREEZE, until: "peek", caption: "", effect: "cellZoomOut" },
+    { at: "peek", offset: 0, len: f(2.2, 1.5), caption: "" },
+    { at: "mistake", offset: 0.05, len: f(3.2, 2.4), rate: f(1, 1.2), caption: "Careful with mistakes", card: "plain", effect: "ringLabel" },
+    { at: "tattoos", offset: 0.1, len: f(2.8, 1.8), caption: "Filled with Easter eggs", card: "plain", effect: "tattoos" },
+    { at: "win", offset: -0.2, until: "summary", untilOffset: 0.4, rate: f(1, 1.8), caption: "Solve it and the whole board flips", card: "plain" },
+    { at: "summary", offset: 0.4, len: f(2.0, 1.1), caption: SAVE, card: "plain" },
+    { at: "export", offset: 0.3, len: f(2.5, 1.6), caption: "", effect: "result" },
+  ];
+};
+const V2_LABELS = [null, "Column", "Row", "Box", "Already used", null];
+
 export const VARIANTS = {
   full: { scenes: SCENES, intro: 1.8, outro: 3.2, pace: 1 },
   fast: { scenes: FAST_SCENES, intro: 1.1, outro: 2.3, pace: 0.6 },
+  v2: { scenes: v2Scenes(false), intro: 1.8, outro: 3.2, pace: 1, spotLabels: V2_LABELS },
+  "v2-fast": { scenes: v2Scenes(true), intro: 1.1, outro: 2.3, pace: 0.6, spotLabels: V2_LABELS },
   ...(Object.fromEntries(
     Object.entries(TESTS).map(([k, scenes]) => [`test-${k}`, { scenes, intro: 0, outro: 0, pace: 1 }]),
   ) as Record<`test-${keyof typeof TESTS}`, Variant>),

@@ -292,6 +292,7 @@ const Shot: React.FC<{ take: Take; format: Format; scene: Scene }> = ({ take, fo
         {scene.effect === "tattoos" && <TattooHighlight take={take} />}
         {scene.effect === "result" && <ResultCard format={format} take={take} />}
         {scene.effect === "ringLabel" && <RingLabel take={take} />}
+        {scene.effect === "flipTag" && <FlipTag take={take} />}
       </AbsoluteFill>
       {scene.effect === "noteLines" && <NoteLines take={take} zoom={cellZoom} />}
       {scene.effect === "ringBubble" && (
@@ -311,6 +312,7 @@ const Shot: React.FC<{ take: Take; format: Format; scene: Scene }> = ({ take, fo
 const Spotlight: React.FC<{ take: Take; start: number; rate: number }> = ({ take, start, rate }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const { spotLabels } = useContext(VariantCtx);
   const t = start + (frame / fps) * rate; // time in the take
   const spots = take.spots as { t: number; rect: Rect | null }[];
   const i = spots.findLastIndex((s) => s.t <= t);
@@ -327,7 +329,7 @@ const Spotlight: React.FC<{ take: Take; start: number; rate: number }> = ({ take
   const r = { x: lerp(from.x, to.x) - pad, y: lerp(from.y, to.y) - pad, w: lerp(from.w, to.w) + pad * 2, h: lerp(from.h, to.h) + pad * 2 };
   // Fade in with the first spot, out when the spotlight ends (rect null).
   const opacity = cur === null ? 1 - p : prev === null ? p : 1;
-  const label = SPOT_LABELS[i];
+  const label = (spotLabels ?? SPOT_LABELS)[i];
   return (
     <>
     <div
@@ -858,5 +860,54 @@ const Magnifier: React.FC<{
         </div>
       </div>
     </AbsoluteFill>
+  );
+};
+
+/** "Upside down!" pointing at the title once notes mode has flipped it. */
+const FlipTag: React.FC<{ take: Take }> = ({ take }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const { pace } = useContext(VariantCtx);
+  const r = (take.rects as { title?: Rect }).title;
+  if (!r) return null;
+  const s = spring({ frame: frame - secs(1.0 * pace, fps), fps, config: { damping: 13, mass: 0.6 } });
+  return (
+    <div
+      style={{
+        position: "absolute",
+        right: take.width - (r.x + r.w),
+        top: r.y + r.h + 34,
+        transform: `scale(${s})`,
+        transformOrigin: "calc(100% - 70px) -30px",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          right: 46,
+          top: -26,
+          width: 0,
+          height: 0,
+          borderLeft: "24px solid transparent",
+          borderRight: "24px solid transparent",
+          borderBottom: `28px solid ${PINK}`,
+        }}
+      />
+      <div
+        style={{
+          background: PINK,
+          color: "#fff",
+          fontSize: 60,
+          fontWeight: 800,
+          letterSpacing: -1,
+          padding: "16px 36px 20px",
+          borderRadius: 28,
+          whiteSpace: "nowrap",
+          boxShadow: "0 16px 36px rgba(16,24,32,0.35)",
+        }}
+      >
+        Upside down!
+      </div>
+    </div>
   );
 };

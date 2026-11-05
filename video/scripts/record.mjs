@@ -193,6 +193,7 @@ async function record(name) {
     const r = (el) => { const b = el.getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height }; };
     return {
       ring: r(document.querySelector(".mistakes")),
+      title: r(document.querySelector(".title")),
       board: r(document.querySelector(".board")),
       tattoos: [...document.querySelectorAll(".tattoo")].map((el) => {
         const b = el.getBoundingClientRect();

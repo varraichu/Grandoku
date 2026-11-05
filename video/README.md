@@ -1,6 +1,6 @@
 # Grandoku demo video
 
-A promo of the game, made with [Remotion](https://remotion.dev) (videos written as React). Two cuts, each vertical 9:16 and landscape 16:9: a full one (~42s) and a fast one (~26s). Silent, so music can be added when posting.
+A promo of the game, made with [Remotion](https://remotion.dev) (videos written as React). Cuts, each vertical 9:16 and landscape 16:9: v1 full (~42s) and fast (~26s) with captions over the gameplay, and v2 full (~53s) and fast (~34s) with a title card per feature, labels on the game and a freeze-frame for note colours. Style test clips live under `out/tests/`. Silent, so music can be added when posting.
 
 ## How it works
 
@@ -19,8 +19,10 @@ npm run record
 # 2. Preview and tweak in the browser
 npm run studio
 
-# 3. Render all four MP4s to out/
-npm run render
+# 3. Render to out/
+npm run render        # v1
+npm run render:v2     # v2
+npm run render:tests  # style tests
 ```
 
 Takes and rendered videos are gitignored (they're large and can be regenerated).
