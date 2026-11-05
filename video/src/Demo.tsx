@@ -15,7 +15,7 @@ import {
 } from "remotion";
 import portraitTake from "../public/takes/portrait.json";
 import landscapeTake from "../public/takes/landscape.json";
-import { CARD_S, sceneLen, VARIANTS, type Scene, type Variant, type VariantName } from "./scenes";
+import { CARD_S, sceneLen, VARIANTS, type CaptionSpot, type Scene, type Variant, type VariantName } from "./scenes";
 
 export type Format = "portrait" | "landscape";
 
@@ -85,19 +85,20 @@ const timeline = (variant: Variant, take: Take, fps: number) => {
 
 export const Demo: React.FC<{ format: Format; variant: VariantName }> = ({ format, variant: name }) => {
   const { fps } = useVideoConfig();
-  const variant = VARIANTS[name];
+  const variant: Variant = VARIANTS[name];
   const items = timeline(variant, TAKES[format], fps);
   const scenesStart = items[0].from;
   const scenesEnd = items.at(-1)!.from + items.at(-1)!.len;
 
   // Consecutive scenes sharing a caption get one caption, so it doesn't re-animate on every cut.
   // Scenes with a title card show their words on the card instead.
-  const captions: { text: string; from: number; len: number }[] = [];
+  const captions: { text: string; from: number; len: number; spot?: CaptionSpot }[] = [];
   for (const { scene, from, len, card } of items) {
-    if (card || scene.card || !scene.caption) continue;
+    const text = (format === "landscape" && scene.captionLandscape) || scene.caption;
+    if (card || scene.card || !text) continue;
     const last = captions.at(-1);
-    if (last && last.text === scene.caption && last.from + last.len === from) last.len += len;
-    else captions.push({ text: scene.caption, from, len });
+    if (last && last.text === text && last.from + last.len === from) last.len += len;
+    else captions.push({ text, from, len, spot: scene.captionAt?.[format] });
   }
   const cards = items.flatMap((item, i) => (item.card ? [{ ...item, next: items[i + 1] }] : []));
 
@@ -119,7 +120,7 @@ export const Demo: React.FC<{ format: Format; variant: VariantName }> = ({ forma
       </Sequence>
       {captions.map((c) => (
         <Sequence key={c.from} from={c.from} durationInFrames={c.len}>
-          <Caption format={format} text={c.text} />
+          {variant.look === "creator" ? <CreatorCaption format={format} text={c.text} spot={c.spot} /> : <Caption format={format} text={c.text} />}
         </Sequence>
       ))}
       {cards.map((c) =>
@@ -206,13 +207,15 @@ const GameWindow: React.FC<{ format: Format; items: Item[] }> = ({ format, items
   const { fps } = useVideoConfig();
   const e = useEase();
   const take = TAKES[format];
-  const { centered } = useContext(VariantCtx);
+  const { centered, look } = useContext(VariantCtx);
   const { height } = useVideoConfig();
-  const { scale, x } = LAYOUT[format];
-  const y = centered ? (height - take.height * scale) / 2 : LAYOUT[format].y;
-  const enter = e(0, 0.7);
+  const fullBleed = look === "creator"; // the gameplay is the whole video, like a screen recording
+  const scale = fullBleed ? 1 : LAYOUT[format].scale;
+  const x = fullBleed ? 0 : LAYOUT[format].x;
+  const y = fullBleed ? 0 : centered ? (height - take.height * scale) / 2 : LAYOUT[format].y;
+  const enter = fullBleed ? 1 : e(0, 0.7);
   const end = items.at(-1)!.from + items.at(-1)!.len;
-  const exit = interpolate(frame, [end - 6, end + 10], [1, 0], clamp);
+  const exit = fullBleed ? 1 : interpolate(frame, [end - 6, end + 10], [1, 0], clamp);
 
   return (
     <div
@@ -222,10 +225,10 @@ const GameWindow: React.FC<{ format: Format; items: Item[] }> = ({ format, items
         top: y,
         width: take.width * scale,
         height: take.height * scale,
-        borderRadius: 40,
+        borderRadius: fullBleed ? 0 : 40,
         overflow: "hidden",
         background: CREAM,
-        boxShadow: "0 30px 80px rgba(16,24,32,0.28), 0 0 0 6px rgba(255,255,255,0.7)",
+        boxShadow: fullBleed ? "none" : "0 30px 80px rgba(16,24,32,0.28), 0 0 0 6px rgba(255,255,255,0.7)",
         opacity: enter * exit,
         transform: `translateY(${interpolate(enter, [0, 1], [140, 0])}px) scale(${interpolate(exit, [0, 1], [0.95, 1])})`,
       }}
@@ -287,13 +290,17 @@ const Shot: React.FC<{ take: Take; format: Format; scene: Scene }> = ({ take, fo
   if (scene.effect === "tattoos") zoomTo(W / 2, H / 2, 1.06, e(0, len / pace));
 
   const video = <TakeVideo format={format} start={start} rate={rate} />;
+  // Creator look: a small zoom bump on every cut.
+  const { look } = useContext(VariantCtx);
+  const punch = look === "creator" ? 1 + 0.045 * (1 - e(0, 0.3)) : 1;
   return (
-    <AbsoluteFill>
+    <AbsoluteFill style={{ transform: `scale(${punch})` }}>
       <AbsoluteFill style={{ transform, transformOrigin: "0 0" }}>
         {scene.still ? <Freeze frame={0}>{video}</Freeze> : video}
         {scene.effect === "spotlight" && <Spotlight take={take} start={start} rate={rate} />}
         {scene.effect === "tattoos" && <TattooHighlight take={take} />}
         {scene.effect === "result" && <ResultCard format={format} take={take} />}
+        {scene.effect === "resultHeld" && <ResultCard format={format} take={take} held />}
         {scene.effect === "ringLabel" && <RingLabel take={take} />}
         {scene.effect === "flipTag" && <FlipTag take={take} />}
       </AbsoluteFill>
@@ -425,11 +432,9 @@ const TattooHighlight: React.FC<{ take: Take }> = ({ take }) => {
 };
 
 /** The exported result image, lifted out of the summary so it fills the window. */
-const ResultCard: React.FC<{ format: Format; take: Take }> = ({ format, take }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+const ResultCard: React.FC<{ format: Format; take: Take; held?: boolean }> = ({ format, take, held }) => {
   const e = useEase();
-  const s = e(0.1, 0.7);
+  const s = held ? 1 : e(0.1, 0.7);
   const h = take.height * (format === "portrait" ? 0.66 : 0.84);
   return (
     <AbsoluteFill style={{ alignItems: "center", justifyContent: "center" }}>
@@ -913,6 +918,53 @@ const FlipTag: React.FC<{ take: Take }> = ({ take }) => {
       >
         Upside down!
       </div>
+    </div>
+  );
+};
+
+/** Creator-style caption: casual words in white boxes, popping in mid-screen like a TikTok text overlay. */
+// Caption centre heights for each spot. Vertical avoids the very top and bottom, where TikTok / Reels draw their own UI.
+const CAPTION_Y: Record<Format, Record<CaptionSpot, number>> = {
+  portrait: { top: 250, middle: 720, bottom: 1450 },
+  landscape: { top: 110, middle: 540, bottom: 880 },
+};
+
+const CreatorCaption: React.FC<{ format: Format; text: string; spot?: CaptionSpot }> = ({ format, text, spot }) => {
+  const frame = useCurrentFrame();
+  const { fps, width } = useVideoConfig();
+  const pop = spring({ frame, fps, config: { damping: 14, mass: 0.6 } });
+  const portrait = format === "portrait";
+  const boxW = portrait ? 900 : 1300;
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: (width - boxW) / 2,
+        width: boxW,
+        top: CAPTION_Y[format][spot ?? (portrait ? "middle" : "bottom")],
+        transform: `translateY(-50%) scale(${interpolate(pop, [0, 1], [0.85, 1])})`,
+        opacity: Math.min(1, pop * 1.5),
+        textAlign: "center",
+        textWrap: "balance",
+        lineHeight: 1.45,
+      }}
+    >
+      <span
+        style={{
+          background: "#fff",
+          color: INK,
+          fontSize: portrait ? 60 : 52,
+          fontWeight: 700,
+          letterSpacing: -0.5,
+          padding: "6px 22px",
+          borderRadius: 14,
+          boxDecorationBreak: "clone",
+          WebkitBoxDecorationBreak: "clone",
+          boxShadow: "0 6px 20px rgba(16,24,32,0.25)",
+        }}
+      >
+        {text}
+      </span>
     </div>
   );
 };

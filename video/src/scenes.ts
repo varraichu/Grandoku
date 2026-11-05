@@ -31,7 +31,8 @@ export type Effect =
   | "ringBubble" // magnifier bubble over the mistakes counter
   | "cellBubble" // magnifier bubble over the noted cell
   | "tattoos"
-  | "result";
+  | "result"
+  | "resultHeld"; // the result image already in place (continues a "result" scene)
 
 export interface Scene {
   at: Mark;
@@ -42,12 +43,18 @@ export interface Scene {
   rate?: number;
   /** Shown at the top while the scene plays ("" = none). */
   caption: string;
+  /** A different caption for the landscape video. */
+  captionLandscape?: string;
+  /** Creator look: where the caption sits, per format (default: middle in vertical, bottom in landscape). */
+  captionAt?: { portrait?: CaptionSpot; landscape?: CaptionSpot };
   effect?: Effect;
   /** Show the caption as a title card first: a full card, or a big title that shrinks into the caption. */
   card?: "plain" | "shrink";
   /** Freeze on the scene's first frame (overlays still animate). */
   still?: boolean;
 }
+
+export type CaptionSpot = "top" | "middle" | "bottom";
 
 export interface Variant {
   scenes: Scene[];
@@ -59,6 +66,8 @@ export interface Variant {
   spotLabels?: (string | null)[];
   /** Centre the game window vertically (for cuts with no caption above it). */
   centered?: boolean;
+  /** "creator": full-screen gameplay, casual caption boxes, a zoom bump on every cut. */
+  look?: "creator";
 }
 
 const ALBUMS = "Sudoku, but the numbers are Ariana's albums";
@@ -189,10 +198,40 @@ const V2_FAST_SCENES: Scene[] = [
 ];
 const V2_LABELS = [null, "Column", "Row", "Box", "Already used", null];
 
+// ---------- v3: someone showing off a game they built (~20s) ----------
+
+const V3_SCENES: Scene[] = [
+  // Hook: open on the big reveal.
+  { at: "win", offset: 1.8, len: 2.4, caption: "I spent way too long making this" },
+  { at: "flipIn", offset: 0.05, len: 1.5, rate: 1.2, caption: "I made sudoku, but the numbers are Ariana's albums" },
+  { at: "play", offset: 0, len: 1.2, rate: 1.4, caption: "I made sudoku, but the numbers are Ariana's albums" },
+  // Jump cuts through the three hint areas.
+  { at: "hintCol", offset: 0, len: 0.8, caption: "Hints if you're stuck" },
+  { at: "hintRow", offset: 0, len: 0.8, caption: "Hints if you're stuck" },
+  { at: "hintBox", offset: 0, len: 0.9, caption: "Hints if you're stuck" },
+  { at: "notes", offset: 0.15, len: 1.3, caption: "Notes mode flips everything upside down" },
+  { at: "notesType", offset: -0.1, len: NOTES_FREEZE + 0.1, rate: 1.6, caption: "Each note is an album's colour", effect: "cellZoomIn", captionAt: { portrait: "top", landscape: "top" } },
+  { at: "notesType", offset: NOTES_FREEZE, len: 2.5, caption: "Each note is an album's colour", effect: "noteLines", still: true, captionAt: { portrait: "top", landscape: "top" } },
+  { at: "mistake", offset: 0.05, len: 2.0, rate: 1.1, caption: "7 mistakes and you're out. Yes, that's a reference", effect: "ringZoom", captionAt: { portrait: "top" } },
+  { at: "tattoos", offset: 0.1, len: 2.0, caption: "Her tattoos are hidden in the background", effect: "tattoos" },
+  { at: "summary", offset: 0.4, len: 1.0, caption: "And you can share your score" },
+  { at: "export", offset: 0.3, len: 1.5, caption: "And you can share your score", effect: "result" },
+  {
+    at: "export",
+    offset: 1.8,
+    len: 2.2,
+    caption: "Link in bio. What should I add next?",
+    captionLandscape: "grandoku.vercel.app. What should I add next?",
+    effect: "resultHeld",
+    captionAt: { portrait: "top" },
+  },
+];
+
 export const VARIANTS = {
   full: { scenes: SCENES, intro: 1.8, outro: 3.2, pace: 1 },
   fast: { scenes: FAST_SCENES, intro: 1.1, outro: 2.3, pace: 0.6 },
   v2: { scenes: V2_SCENES, intro: 1.8, outro: 3.2, pace: 1, spotLabels: V2_LABELS, centered: true },
+  v3: { scenes: V3_SCENES, intro: 0, outro: 0, pace: 0.75, look: "creator" },
   "v2-fast": { scenes: V2_FAST_SCENES, intro: 1.3, outro: 2.6, pace: 0.8, spotLabels: V2_LABELS, centered: true },
   ...(Object.fromEntries(
     Object.entries(TESTS).map(([k, scenes]) => [`test-${k}`, { scenes, intro: 0, outro: 0, pace: 1 }]),

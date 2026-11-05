@@ -16,6 +16,8 @@ const VIDEOS = [
   { id: "V2-Landscape", format: "landscape", variant: "v2" },
   { id: "V2-Vertical-Fast", format: "portrait", variant: "v2-fast" },
   { id: "V2-Landscape-Fast", format: "landscape", variant: "v2-fast" },
+  { id: "V3-Vertical", format: "portrait", variant: "v3" },
+  { id: "V3-Landscape", format: "landscape", variant: "v3" },
   // Style tests (vertical only).
   { id: "Test-1a-CardPlain", format: "portrait", variant: "test-cardPlain" },
   { id: "Test-1b-CardShrink", format: "portrait", variant: "test-cardShrink" },
