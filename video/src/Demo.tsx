@@ -206,7 +206,10 @@ const GameWindow: React.FC<{ format: Format; items: Item[] }> = ({ format, items
   const { fps } = useVideoConfig();
   const e = useEase();
   const take = TAKES[format];
-  const { scale, x, y } = LAYOUT[format];
+  const { centered } = useContext(VariantCtx);
+  const { height } = useVideoConfig();
+  const { scale, x } = LAYOUT[format];
+  const y = centered ? (height - take.height * scale) / 2 : LAYOUT[format].y;
   const enter = e(0, 0.7);
   const end = items.at(-1)!.from + items.at(-1)!.len;
   const exit = interpolate(frame, [end - 6, end + 10], [1, 0], clamp);
@@ -738,6 +741,8 @@ const RingLabel: React.FC<{ take: Take }> = ({ take }) => {
   const outline = e(0.3, 0.4);
   const s = spring({ frame: frame - secs(0.6, fps), fps, config: { damping: 14, mass: 0.7 } });
   const pad = 16;
+  // Hang the label off the counter's left edge, or its right edge when there isn't room.
+  const fromRight = r.x + 720 > take.width;
   return (
     <AbsoluteFill>
       <div
@@ -757,17 +762,17 @@ const RingLabel: React.FC<{ take: Take }> = ({ take }) => {
       <div
         style={{
           position: "absolute",
-          left: r.x - pad,
+          ...(fromRight ? { right: take.width - (r.x + r.w + pad) } : { left: r.x - pad }),
           top: r.y + r.h + pad + 34,
           transform: `scale(${s})`,
-          transformOrigin: "60px -30px",
+          transformOrigin: fromRight ? "calc(100% - 60px) -30px" : "60px -30px",
         }}
       >
         {/* Pointer up to the counter. */}
         <div
           style={{
             position: "absolute",
-            left: 44,
+            ...(fromRight ? { right: 44 } : { left: 44 }),
             top: -26,
             width: 0,
             height: 0,
