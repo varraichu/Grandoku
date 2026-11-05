@@ -1,14 +1,32 @@
 import { Composition } from "remotion";
-import { Demo, TAKES } from "./Demo";
-import { totalSeconds } from "./scenes";
+import { Demo, TAKES, type Format } from "./Demo";
+import { totalSeconds, VARIANTS, type VariantName } from "./scenes";
 
 const FPS = 30;
-// Each version's length follows its own take (they differ by a few frames).
-const frames = (format: keyof typeof TAKES) => Math.round(totalSeconds(TAKES[format].marks) * FPS);
+// Each video's length follows its cut and its own take (the takes differ by a few frames).
+const frames = (format: Format, variant: VariantName) => Math.round(totalSeconds(VARIANTS[variant], TAKES[format].marks) * FPS);
+
+const SIZES = { portrait: [1080, 1920], landscape: [1920, 1080] } as const;
+const VIDEOS = [
+  { id: "Vertical", format: "portrait", variant: "full" },
+  { id: "Landscape", format: "landscape", variant: "full" },
+  { id: "Vertical-Fast", format: "portrait", variant: "fast" },
+  { id: "Landscape-Fast", format: "landscape", variant: "fast" },
+] as const;
 
 export const RemotionRoot = () => (
   <>
-    <Composition id="Vertical" component={Demo} defaultProps={{ format: "portrait" as const }} width={1080} height={1920} fps={FPS} durationInFrames={frames("portrait")} />
-    <Composition id="Landscape" component={Demo} defaultProps={{ format: "landscape" as const }} width={1920} height={1080} fps={FPS} durationInFrames={frames("landscape")} />
+    {VIDEOS.map(({ id, format, variant }) => (
+      <Composition
+        key={id}
+        id={id}
+        component={Demo}
+        defaultProps={{ format, variant }}
+        width={SIZES[format][0]}
+        height={SIZES[format][1]}
+        fps={FPS}
+        durationInFrames={frames(format, variant)}
+      />
+    ))}
   </>
 );

@@ -1,11 +1,11 @@
 # Grandoku demo video
 
-A ~20s promo of the game, made with [Remotion](https://remotion.dev) (videos written as React). Two versions: vertical 9:16 and landscape 16:9. Silent, so music can be added when posting.
+A promo of the game, made with [Remotion](https://remotion.dev) (videos written as React). Two cuts, each vertical 9:16 and landscape 16:9: a full one (~42s) and a fast one (~26s). Silent, so music can be added when posting.
 
 ## How it works
 
 1. `scripts/record.mjs` opens the game in a headless browser, plays a scripted game (hints, notes, mistakes, win, save image) and saves a high-quality take per format to `public/takes/`, plus the time of each moment and where the ring and tattoos sit on screen.
-2. `src/` cuts those takes into scenes with captions, zooms and overlays. The cut list (which moment, how long, what caption) is in `src/scenes.ts`.
+2. `src/` cuts those takes into scenes with captions, zooms and overlays. Both cut lists (which moment, how long, how fast, what caption) are in `src/scenes.ts`.
 
 ## Run it
 
@@ -19,7 +19,7 @@ npm run record
 # 2. Preview and tweak in the browser
 npm run studio
 
-# 3. Render both MP4s to out/
+# 3. Render all four MP4s to out/
 npm run render
 ```
 

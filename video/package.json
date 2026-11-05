@@ -4,7 +4,7 @@
   "scripts": {
     "record": "node scripts/record.mjs",
     "studio": "remotion studio src/index.ts",
-    "render": "remotion render src/index.ts Vertical out/grandoku-vertical.mp4 --timeout=120000 --crf=16 && remotion render src/index.ts Landscape out/grandoku-landscape.mp4 --timeout=120000 --crf=16"
+    "render": "remotion render src/index.ts Vertical out/grandoku-vertical.mp4 --timeout=120000 --crf=16 && remotion render src/index.ts Landscape out/grandoku-landscape.mp4 --timeout=120000 --crf=16 && remotion render src/index.ts Vertical-Fast out/grandoku-vertical-fast.mp4 --timeout=120000 --crf=16 && remotion render src/index.ts Landscape-Fast out/grandoku-landscape-fast.mp4 --timeout=120000 --crf=16"
   },
   "type": "module",
   "devDependencies": {
